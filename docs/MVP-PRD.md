@@ -1,6 +1,6 @@
-# Lumi — MVP 需求文档（V1）
+﻿# Lumi — MVP 需求文档（V1）
 
-> 版本：v1.0  
+> 版本：v1.1  
 > 日期：2026-07-24  
 > 状态：待评审
 
@@ -99,6 +99,7 @@ Lumi 是一个**纯本地运行**的网页/PWA 应用：
 | 日历视图 | 月历叠加周期状态 | P1 |
 | 数据管理 | 导出 JSON / 导入 / 永久删除 | P0 |
 | 隐私政策 | 离线友好的本地 README + 应用内"关于"页 | P0 |
+| 国际化（i18n） | 简体中文 + English 双语；可运行时切换；预留扩展接口 | P0 |
 | 主题切换 | 浅色 / 深色 / 跟随系统 | P1 |
 
 ### 5.2 V1 Out of Scope（不做）
@@ -111,7 +112,7 @@ Lumi 是一个**纯本地运行**的网页/PWA 应用：
 - ❌ 医生共享、伴侣共享
 - ❌ 第三方 AI API 接入
 - ❌ 药品 / 避孕药追踪
-- ❌ 多语言（V1 仅简体中文，英文留 i18n 占位）
+- ❌ 自动翻译 / 机器翻译集成（V1 文案必须人工本地化）
 - ❌ Apple Health / Google Fit 集成
 
 ---
@@ -292,8 +293,159 @@ function generateInsights(userData): Insight[] {
 - ✅ 当用户数据 < 7 天时，显示"需要更多数据才能生成洞察"；
 - ✅ 每条洞察可点击展开看到原始数据；
 - ✅ 用户可以"关闭某类洞察"，偏好持久化；
-- ✅ 没有任何外部网络请求（可通过 DevTools Network 面板验证）。
 
+### 6.5 国际化（Internationalization, i18n）
+
+#### 6.5.1 用户故事
+> 作为用户，我希望可以**用自己的母语使用 Lumi**，并能随时切换语言，以便获得更亲切的体验。
+
+#### 6.5.2 语言支持范围
+
+| 版本 | 支持语言 |
+| --- | --- |
+| **V1（必交付）** | 🇨🇳 简体中文（zh-CN，默认）<br/>🇺🇸 English（en） |
+| V2（计划） | 🇯🇵 日本語（ja）<br/>🇹🇼 繁體中文（zh-TW）<br/>🇰🇷 한국어（ko） |
+| V3+（远期） | 🇪🇸 Español（es）、🇫🇷 Français（fr）、🇩🇪 Deutsch（de）、🇸🇦 العربية（ar, RTL） |
+
+> V1 的 i18n 基础设施必须设计为**可插拔**，新增语言仅需添加一个 JSON 文件，无需修改组件代码。
+
+#### 6.5.3 技术方案
+
+**i18n 库选型**：eact-i18next + i18next
+- 行业标准，TypeScript 友好；
+- 内置浏览器语言检测、复数处理、命名空间、懒加载；
+- 与 date-fns/locale 配合实现日期本地化；
+- 与原生 Intl.NumberFormat 配合实现数字/单位本地化；
+- Bundle 体积：~10KB gzip。
+
+**目录结构**：
+
+`
+src/
+└── shared/
+    └── i18n/
+        ├── index.ts          # i18next 初始化
+        ├── config.ts         # 支持语言列表 + 元数据
+        ├── locales/
+        │   ├── zh-CN/
+        │   │   ├── common.json       # 通用文案（按钮、标签）
+        │   │   ├── pages.json        # 各页面文案
+        │   │   ├── insights.json     # AI 洞察文案
+        │   │   ├── onboarding.json   # 入职引导文案
+        │   │   └── errors.json       # 错误提示
+        │   └── en/
+        │       └── (同上)
+        └── hooks/
+            └── useLocale.ts  # 读取 + 切换语言
+`
+
+**语言检测优先级**：
+1. 用户在 Settings 手动选择（最高优先）；
+2. localStorage 中保存的用户偏好；
+3. 浏览器 
+avigator.language 匹配 supported list；
+4. fallback → zh-CN（因目标用户以中文为主）。
+
+#### 6.5.4 需要翻译 vs 不翻译的内容
+
+| 内容类型 | 示例 | 处理 |
+| --- | --- | --- |
+| UI 标签 / 按钮 | "记录月经" / "Log Period" | ✅ 翻译 |
+| 页面标题 / 段落 | "今日" / "Today" | ✅ 翻译 |
+| Toast / 错误提示 | "保存失败" / "Failed to save" | ✅ 翻译 |
+| 空状态文案 | "还没有记录哦" / "No logs yet" | ✅ 翻译 |
+| AI 洞察文案 | "近 6 个月你的周期规律性良好 ✨" | ✅ 翻译 |
+| 周期阶段名称 | "卵泡期" / "Follicular Phase" | ✅ 翻译（医学术语表） |
+| 日期 | "2026年7月24日" / "July 24, 2026" | ✅ date-fns locale |
+| 数字 / 单位 | "6 个月" / "6 months" | ✅ Intl |
+| **用户输入的备注** | "今天很疲惫" | ❌ 保留原文 |
+| **数据 schema 字段名** | startDate | ❌ 代码标识符 |
+| **emoji 表情** | 😣 🤕 🎈 | ⚠️ 跨语言一致，不翻译 |
+
+#### 6.5.5 本地化（L10n）细节
+
+**日期格式**（date-fns）：
+- zh-CN：yyyy年M月d日 → 2026年7月24日
+- en：PPP → July 24th, 2026
+
+**数字格式**（Intl.NumberFormat）：
+- zh-CN：1,234.5
+- en-US：1,234.5（差异在更高数量级时显现：10,0000 vs 100,000）
+
+**复数处理**（i18next 自动）：
+`json
+// en
+"daysLogged": "{count} day logged",
+"daysLogged_other": "{count} days logged"
+`
+`json
+// zh-CN（无复数变化）
+"daysLogged": "已记录 {count} 天"
+`
+
+**字符串插值示例**：
+`	ypescript
+t('daysLogged', { count: 5 })  // zh: "已记录 5 天"  en: "5 days logged"
+t('cyclePhase', { phase: 'follicular' })  // zh: "当前处于卵泡期"  en: "You're in the follicular phase"
+`
+
+#### 6.5.6 布局适配
+
+| 现象 | 解决方案 |
+| --- | --- |
+| 中文按钮常比英文短（如"取消" vs "Cancel"） | 按钮用 min-width 而非固定宽度 |
+| 英文文案常更长，可能换行 | 设置 	ext-wrap: balance 或允许 2 行 |
+| 中英文混排行高差异 | 行高统一设为 1.6，两端对齐 |
+| 数字与单位之间空格 | zh：无；en：6 months（i18next 处理） |
+| 长单词溢出（如英文 symptom 名） | 设置 overflow-wrap: anywhere |
+
+**为 RTL 预留（V3+）**：
+- 使用 margin-inline-start/end 而非 margin-left/right；
+- 使用 padding-inline-* 同理；
+- 切换语言时设置 <html dir="rtl|ltr">。
+
+#### 6.5.7 语言切换交互
+
+`
+Settings → 通用 → 语言
+  → 显示支持语言列表（每项：母语名 + 英文名 + 国旗 emoji）
+  → 当前语言右侧显示"✓"
+  → 点击其他语言 → 立即生效，无需重启
+  → 偏好写入 settings 表（key: 'language'）
+`
+
+#### 6.5.8 翻译质量保证
+
+- **不引入机器翻译**：所有文案由人工撰写或由 native speaker 校对；
+- **避免字面翻译**：英文文案"本地化"而非"翻译"，符合英文用户表达习惯；
+- **医学术语统一表**：
+
+| 中文 | English |
+| --- | --- |
+| 月经 / 经期 | Period / Menstruation |
+| 排卵 | Ovulation |
+| 卵泡期 | Follicular Phase |
+| 黄体期 | Luteal Phase |
+| 易孕期 | Fertile Window |
+| 经前综合征 (PMS) | Premenstrual Syndrome (PMS) |
+| 经痛 | Menstrual Cramps / Dysmenorrhea |
+| 基础体温 (BBT) | Basal Body Temperature (BBT) |
+
+- **性别中立**：英文避免隐含性别（如不写 "she might experience..."，改用 "you might..."）；
+- **长度控制**：核心按钮文案中英长度差不超过 2 倍；
+- **不翻译 emoji 与数字**。
+
+#### 6.5.9 验收标准
+- ✅ Settings 可在 zh-CN / en 之间切换，无需刷新页面；
+- ✅ 所有 UI 文字（按钮、Toast、错误提示、AI 洞察、空状态）均翻译完毕，无遗漏硬编码中/英文；
+- ✅ 日期、数字、单位按 locale 正确格式化；
+- ✅ 首次启动根据浏览器语言自动选择 zh-CN 或 en；
+- ✅ 用户语言偏好持久化，关闭浏览器后再次打开保持；
+- ✅ 切换语言不影响已录入的用户数据（数据 schema 与语言无关）；
+- ✅ 导出 JSON 中语言偏好作为 metadata 字段保存（meta.language）；
+- ✅ 新增一种语言仅需：(1) 添加 JSON 文件 (2) 在 config.ts 注册，无需改组件代码。
+
+---
 ---
 
 ## 7. 数据模型（Dexie / IndexedDB）
@@ -343,6 +495,12 @@ interface Setting<T = any> {
   key: string;
   value: T;
 }
+
+// V1 内置 key：
+// - 'language': 'zh-CN' | 'en'（用户语言偏好）
+// - 'theme': 'light' | 'dark' | 'system'（主题）
+// - 'avgCycleLen': number（用户自定义平均周期长度，默认 28）
+// - 'onboarded': boolean（是否完成入职引导）
 ```
 
 ---
@@ -351,11 +509,12 @@ interface Setting<T = any> {
 
 ### 8.1 首次启动
 ```
-启动 → 检测到无历史数据 → 显示入职引导
-  → Step 1: 自我介绍（可选用户名）
-  → Step 2: 最近一次月经开始日（默认今天/日历选）
-  → Step 3: 平均周期长度（默认 28，可调 21~35）
-  → Step 4: 想追踪哪些内容（多选）
+启动 → 检测浏览器语言 → 若 zh* 默认 zh-CN，否则 en → 显示入职引导
+  → Step 1: 语言选择（首次可切换，预填上面推断的语言）
+  → Step 2: 自我介绍（可选用户名）
+  → Step 3: 最近一次月经开始日（默认今天/日历选）
+  → Step 4: 平均周期长度（默认 28，可调 21~35）
+  → Step 5: 想追踪哪些内容（多选）
   → 进入主界面（Today）
 ```
 
@@ -423,6 +582,16 @@ Settings → 数据管理 → 导出
 - ✅ iOS Safari 14+ / Android Chrome 90+；
 - ✅ 移动端断点 375 / 768 / 1024。
 
+### 9.5 国际化（i18n）
+- ✅ **双语支持**：V1 必须 100% 完成 zh-CN 和 en 翻译，无遗漏硬编码文案；
+- ✅ **运行时切换**：切换语言不刷新页面，所有 UI 即时更新；
+- ✅ **locale 感知**：日期、数字、单位按当前 locale 格式化；
+- ✅ **数据无关**：数据 schema 与语言无关，切换语言不丢数据；
+- ✅ **持久化**：语言偏好写入 IndexedDB，跨会话保持；
+- ✅ **可扩展性**：新增语言仅需 JSON 文件 + config 注册，不改组件；
+- ✅ **导出兼容**：导出 JSON 中 meta.language 字段记录用户偏好；
+- ✅ **离线可用**：所有翻译文案打包进 bundle，无需网络下载。
+
 ---
 
 ## 10. UI/UX 原则
@@ -430,7 +599,10 @@ Settings → 数据管理 → 导出
 ### 10.1 视觉语言
 - **主色**：暖奶油 `#FAF7F2`、柔薰衣草 `#C8B6E2`、暖珊瑚 `#E8B4A0`；
 - **辅助色**：墨黑 `#2D2A26`、雾灰 `#8B8680`；
-- **字体**：系统字体栈（中文：苹方/思源黑体；英文：Inter）；
+- **字体**：系统字体栈；
+  - zh-CN：-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif；
+  - en：-apple-system, "Inter", "Segoe UI", sans-serif；
+  - 数字与日期统一使用等宽数字（ont-variant-numeric: tabular-nums），防止切换时跳动；
 - **圆角**：12px / 16px / 24px 分级；
 - **阴影**：极简，单层 0 4px 16px rgba(0,0,0,0.06)；
 - **图标**：lucide-react，统一 stroke-width 1.75。
@@ -541,7 +713,8 @@ src/
 - [ ] 日历视图显示过去、当前、预测的周期状态；
 - [ ] Today 页显示当前阶段 + 距下次月经天数；
 - [ ] Insights 页根据数据量返回相应洞察；
-- [ ] Settings 支持导出 JSON 和清空数据。
+- [ ] Settings 支持导出 JSON 和清空数据；
+- [ ] **i18n**：可在 Settings 切换 zh-CN / en，无需刷新；所有 UI 文案 100% 翻译完毕；首次启动自动检测浏览器语言。
 
 ### 12.2 质量
 - [ ] 关键算法（`predict.ts`, `insights.ts`）有单元测试；
@@ -560,8 +733,9 @@ src/
 
 | 版本 | 时间 | 关键功能 |
 | --- | --- | --- |
-| **V1（MVP）** | 当前 | 周期追踪 + 排卵预测 + 健康日记 + AI 洞察（本地） |
-| V1.1 | V1 后 2 周 | PWA（可安装到主屏、离线） + 主题切换 + i18n 占位 |
+| **V1（MVP）** | 当前 | 周期追踪 + 排卵预测 + 健康日记 + AI 洞察（本地） + **i18n（zh-CN/en）** |
+| V1.1 | V1 后 2 周 | PWA（可安装到主屏、离线） + 主题切换 + i18n 完善（en 文案 native 校对） |
+| V2 | V1 后 6 周 | 备孕模式（BBT 曲线）+ 加密备份 + 导入历史数据 + **i18n 扩展（ja/ko/zh-TW）** |
 | V2 | V1 后 6 周 | 备孕模式（BBT 曲线）+ 加密备份 + 导入历史数据 |
 | V3 | V2 后 8 周 | 可选云同步（E2EE，用户自托管） + 多端同步 |
 | V4 | 未来 | 孕期模式 + 围绝经期模式 + 医生分享 |
@@ -578,6 +752,10 @@ src/
 | 误把"健康追踪"当"医学诊断" | 法律/伦理风险 | 全局 Disclaimer；洞察文案避免诊断口吻 |
 | "AI"过度营销被质疑 | 信任危机 | 透明说明"本地规则引擎"，附"为什么这么算" |
 | 浏览器 IndexedDB 限制（Safari 隐私模式） | 功能异常 | 检测并提示用户切出隐私模式 |
+| 翻译质量参差影响体验 | 用户不信任 | 关键文案必须 native speaker 校对；建立术语表 |
+| 中英文案长度差异导致 UI 错位 | 视觉不一致 | 按钮 min-width，文字 	ext-wrap: balance，预留 2x 长度空间 |
+| 未来新增 RTL 语言（ar/he）需重构布局 | 改造成本 | 当前已用 margin-inline-* 而非 margin-left/right |
+| 文案散落各组件难统一管理 | 维护困难 | 强制使用 i18n key，CI 检查无硬编码中英文 |
 
 ---
 
@@ -601,6 +779,7 @@ src/
 | 版本 | 日期 | 变更 |
 | --- | --- | --- |
 | v1.0 | 2026-07-24 | 初稿 |
+| v1.1 | 2026-07-24 | 新增 §6.5 国际化（i18n）：V1 支持 zh-CN + en 双语，预留扩展接口；更新 §5 范围、§7.3 设置项、§8.1 入职流程、§9.5 非功能需求、§11.1 依赖、§12.1 验收、§13 路线图 |
 
 ---
 

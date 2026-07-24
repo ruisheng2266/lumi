@@ -34,7 +34,7 @@
 ┌─────────────────────────────────────────────────────────────┐
 │            Cloudflare Pages (全球 CDN)                        │
 │  • 项目：lumi                                                  │
-│  • 域名：lumi-6au.pages.dev                                    │
+│  • 域名：lumi365.com (主) / lumi-6au.pages.dev (备用)                                    │
 │  • 构建命令：npm run build                                     │
 │  • 输出目录：dist                                               │
 │  • 自动 HTTPS                                                  │
@@ -282,7 +282,7 @@ Lumi V1 **不使用任何第三方分析**（隐私承诺）。可选自托管�
 - [ ] 类型检查通过（`npm run type-check`）
 - [ ] 构建成功（`npm run build`）
 - [ ] 本地预览正常（`npm run preview`）
-- [ ] CSP 头正确（`curl -I https://lumi-6au.pages.dev`）
+- [ ] CSP 头正确（`curl -I https://lumi365.com`）
 - [ ] 404 fallback 正常（访问 `/today` 不报错）
 - [ ] 数据导入导出正常（Onboarding → 记录 → Settings → 导出 JSON）
 

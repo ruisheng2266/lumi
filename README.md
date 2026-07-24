@@ -4,7 +4,7 @@
 
 Lumi 是一款**本地优先**的网页应用（PWA），帮助你追踪月经周期、排卵预测、健康日记，并提供基于本地算法的 AI 洞察。
 
-**🌐 在线访问**：<https://lumi-6au.pages.dev>
+**🌐 在线访问**：<https://lumi365.com>（备用：<https://lumi-6au.pages.dev>）
 
 ---
 
@@ -173,7 +173,7 @@ npm run test:watch # 监听模式
 
 ## 🚢 部署
 
-Lumi 部署在 **Cloudflare Pages**（[lumi-6au.pages.dev](https://lumi-6au.pages.dev)）。
+Lumi 部署在 **Cloudflare Pages**，主域名 **[lumi365.com](https://lumi365.com)**（备用子域：[lumi-6au.pages.dev](https://lumi-6au.pages.dev)）。
 
 部署流程：GitHub `main` 分支推送 → GitHub Action 触发 → npm build → Cloudflare Pages 部署
 

@@ -1,14 +1,179 @@
+import { useEffect, useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useTranslation } from 'react-i18next';
+import { Droplet, Sparkles, Plus } from 'lucide-react';
+import { Card, CardTitle } from '../shared/ui/Card';
+import { Button } from '../shared/ui/Button';
+import { periodRepo, settingsRepo, userProfileRepo } from '../shared/db/client';
+import { predictCycle, type CyclePrediction, type PeriodRecord } from '../shared/lib/predict';
+import { today, fmtShort, daysBetween } from '../shared/lib/date';
+import { useNavigate } from 'react-router-dom';
+import { LogSheet } from '../features/LogSheet';
 
 export function Today() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [logOpen, setLogOpen] = useState(false);
+  const [onboarded, setOnboarded] = useState<boolean | null>(null);
+  const [displayName, setDisplayName] = useState<string>('');
+
+  // 实时查询周期数据
+  const periods = useLiveQuery(() => periodRepo.list(), []);
+  const profile = useLiveQuery(() => userProfileRepo.get(), []);
+
+  useEffect(() => {
+    (async () => {
+      const o = await settingsRepo.get<boolean>('onboarded');
+      if (!o) {
+        navigate('/onboarding', { replace: true });
+      } else {
+        setOnboarded(true);
+      }
+    })();
+  }, [navigate]);
+
+  useEffect(() => {
+    if (profile?.displayName) setDisplayName(profile.displayName);
+  }, [profile]);
+
+  if (onboarded === null || !periods) {
+    return <div className="text-fog text-center py-12">{t('common.loading')}</div>;
+  }
+
+  // 计算预测
+  const prediction: CyclePrediction = predictCycle(
+    periods as PeriodRecord[],
+    today(),
+    profile?.avgCycleLen,
+    profile?.avgPeriodLen,
+  );
+
+  // 判断问候语
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? t('today.greetingMorning')
+    : hour < 18 ? t('today.greetingAfternoon')
+    : t('today.greetingEvening');
+
+  // 距离下次月经
+  const daysToNext = prediction.nextPeriodStart
+    ? daysBetween(today(), new Date(prediction.nextPeriodStart))
+    : null;
+
+  // 是否在经期
+  const isOnPeriod = periods.some((p) => {
+    const start = new Date(p.startDate);
+    const end = p.endDate ? new Date(p.endDate) : null;
+    return today() >= start && (!end || today() <= end);
+  });
+
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">{t('pages.todayTitle')}</h1>
-      <p className="text-fog">当前阶段、距下次月经天数、今日提醒……</p>
-      <div className="card">
-        <p className="text-sm text-fog">占位：算法验证已通过（见 validation/README.md）</p>
+    <div className="space-y-5">
+      {/* Greeting */}
+      <div>
+        <h1 className="text-2xl font-semibold">
+          {greeting}{displayName && <span className="text-fog">, {displayName}</span>}
+        </h1>
+        <p className="text-sm text-fog mt-1">{fmtShort(today())}</p>
       </div>
+
+      {/* 当前周期卡片 */}
+      {prediction.currentDayInCycle !== null ? (
+        <Card className="bg-gradient-to-br from-lavender-100 via-cream to-coral-100 border-0">
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <p className="text-xs text-fog uppercase tracking-wide">{t('today.phaseLabel')}</p>
+              <p className="text-2xl font-semibold text-lavender-600 mt-1">
+                {prediction.currentPhase ? t(`phases.${prediction.currentPhase}`) : '—'}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-fog">{t('today.cycleDay', { day: prediction.currentDayInCycle })}</p>
+              <p className="text-3xl font-bold tabular-nums text-lavender-500 mt-1">
+                {prediction.currentDayInCycle}
+              </p>
+            </div>
+          </div>
+
+          {daysToNext !== null && daysToNext >= 0 && (
+            <div className="flex items-center gap-2 text-sm text-fog">
+              <Droplet size={14} className="text-coral-500" />
+              {daysToNext === 0
+                ? t('today.nextPeriodToday')
+                : daysToNext === 1
+                ? t('today.nextPeriodTomorrow')
+                : t('today.nextPeriodIn', { days: daysToNext })}
+            </div>
+          )}
+        </Card>
+      ) : (
+        <Card variant="flat" className="text-center py-6">
+          <p className="text-fog text-sm">{t('today.notEnoughData')}</p>
+        </Card>
+      )}
+
+      {/* 排卵日 + 易孕期 */}
+      {prediction.ovulationDay && (
+        <Card>
+          <CardTitle>{t('today.ovulationIn')}</CardTitle>
+          <p className="text-lg font-semibold tabular-nums text-coral-500">
+            {fmtShort(prediction.ovulationDay)}
+          </p>
+          <p className="text-xs text-fog mt-2">
+            {t('today.fertileWindow')}: {fmtShort(prediction.fertileWindowStart!)} — {fmtShort(prediction.fertileWindowEnd!)}
+          </p>
+        </Card>
+      )}
+
+      {/* 快速操作 */}
+      <div className="grid grid-cols-2 gap-3">
+        {!isOnPeriod ? (
+          <Button
+            variant="coral"
+            fullWidth
+            leftIcon={<Droplet size={18} />}
+            onClick={async () => {
+              await periodRepo.add({ startDate: today().toISOString().slice(0, 10) });
+            }}
+          >
+            {t('common.startPeriod')}
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            fullWidth
+            leftIcon={<Droplet size={18} />}
+            onClick={async () => {
+              const last = periods[0];
+              if (last?.id) {
+                await periodRepo.update(last.id, { endDate: today().toISOString().slice(0, 10) });
+              }
+            }}
+          >
+            {t('common.endPeriod')}
+          </Button>
+        )}
+        <Button variant="primary" fullWidth leftIcon={<Plus size={18} />} onClick={() => setLogOpen(true)}>
+          {t('today.logToday')}
+        </Button>
+      </div>
+
+      {/* 置信度提示 */}
+      {prediction.confidence !== 'high' && (
+        <Card variant="flat" className="flex items-start gap-3">
+          <Sparkles size={18} className="text-lavender-500 mt-0.5 shrink-0" />
+          <div className="text-sm">
+            <p className="text-fog">
+              {t(`insight.data_needed`)}
+            </p>
+            <p className="text-xs text-fog mt-1">
+              {t('common.loggedDays', { count: prediction.cycleCount })}
+            </p>
+          </div>
+        </Card>
+      )}
+
+      <LogSheet open={logOpen} onClose={() => setLogOpen(false)} />
     </div>
   );
 }

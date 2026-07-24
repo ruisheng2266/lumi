@@ -1,49 +1,38 @@
-﻿# Dependencies
+﻿# V1 依赖
 node_modules/
-.pnp
-.pnp.js
-.yarn/
-
-# Build output
 dist/
-dist-ssr/
-build/
-*.local
+.vite/
+coverage/
 
-# Editor / IDE
+# 测试与构建产物
+*.tsbuildinfo
+.cache/
+
+# 日志
+*.log
+npm-debug.log*
+
+# 环境
+.env
+.env.local
+.env.*.local
+
+# 编辑器
 .vscode/*
 !.vscode/extensions.json
-!.vscode/settings.json
 .idea/
 *.swp
 *.swo
 *~
 
-# OS
+# 系统
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# Logs
-logs/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+# 验证目录（依赖隔离）
+validation/node_modules/
 
-# Environment files
-.env
-.env.local
-.env.*.local
-
-# Vite cache
-.vite/
-
-# Test coverage
-coverage/
-.nyc_output/
-
-# Misc
-*.tsbuildinfo
-.eslintcache
+# Claude/Codex
+.claude/
+.codex/

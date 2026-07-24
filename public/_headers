@@ -1,0 +1,18 @@
+﻿/*
+  # Content Security Policy：物理禁止任何网络请求，固化"零网络"承诺
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'none'; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+
+# 不缓存 HTML，确保更新立即生效
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# 不缓存 service worker
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * src/predict.test.ts
  * predict.ts 单元测试（PRD §6.1.4 / §6.2.5 / §12.2）
  */

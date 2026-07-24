@@ -1,9 +1,7 @@
 /**
- * src/i18n.ts
- * i18next 配置（PRD §6.5）
+ * src/shared/i18n/config.ts
+ * i18n 配置：语言列表、文案
  */
-import i18next from 'i18next';
-
 export const SUPPORTED_LOCALES = ['zh-CN', 'en'] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
@@ -23,12 +21,26 @@ export const resources = {
       delete: '删除',
       edit: '编辑',
       confirm: '确认',
+      yes: '是的',
+      no: '不是',
+      loading: '加载中…',
+      empty: '还没有记录哦',
+      error: '出错了，请稍后再试',
+      loggedDays: '已记录 {count} 天',
+    },
+    nav: {
       today: '今日',
       calendar: '日历',
       log: '日记',
       insights: '洞察',
       settings: '设置',
-      loggedDays: '已记录 {count} 天',
+    },
+    pages: {
+      todayTitle: '今日',
+      calendarTitle: '日历',
+      logTitle: '健康日记',
+      insightsTitle: 'AI 洞察',
+      settingsTitle: '设置',
     },
     phases: {
       menstrual: '经期',
@@ -50,13 +62,27 @@ export const resources = {
       delete: 'Delete',
       edit: 'Edit',
       confirm: 'Confirm',
+      yes: 'Yes',
+      no: 'No',
+      loading: 'Loading…',
+      empty: 'No records yet',
+      error: 'Something went wrong, please try again',
+      loggedDays_one: '{count} day logged',
+      loggedDays_other: '{count} days logged',
+    },
+    nav: {
       today: 'Today',
       calendar: 'Calendar',
       log: 'Log',
       insights: 'Insights',
       settings: 'Settings',
-      loggedDays_one: '{count} day logged',
-      loggedDays_other: '{count} days logged',
+    },
+    pages: {
+      todayTitle: 'Today',
+      calendarTitle: 'Calendar',
+      logTitle: 'Health Log',
+      insightsTitle: 'AI Insights',
+      settingsTitle: 'Settings',
     },
     phases: {
       menstrual: 'Menstrual',
@@ -72,17 +98,3 @@ export const resources = {
     },
   },
 } as const;
-
-export async function initI18n(locale: SupportedLocale = 'zh-CN') {
-  await i18next.init({
-    lng: locale,
-    fallbackLng: 'zh-CN',
-    supportedLngs: [...SUPPORTED_LOCALES],
-    ns: ['common', 'phases', 'insight'],
-    defaultNS: 'common',
-    resources,
-    interpolation: { escapeValue: false, prefix: '{', suffix: '}' },
-    returnEmptyString: false,
-  });
-  return i18next;
-}

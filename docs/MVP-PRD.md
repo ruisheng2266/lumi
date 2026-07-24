@@ -1,6 +1,6 @@
-# Lumi — MVP 需求文档（V1）
+﻿# Lumi — MVP 需求文档（V1）
 
-> 版本：v1.2  
+> 版本：v1.3  
 > 日期：2026-07-24  
 > 状态：待评审
 
@@ -703,6 +703,82 @@ Settings → 数据管理 → 导出
 | `clsx`, `tailwind-merge` | className 合并 |
 | `zustand` | 轻量全局状态（主题、用户偏好） |
 
+
+
+### 11.4 部署架构
+
+#### 11.4.1 平台选型
+
+**主部署**：[Cloudflare Pages](https://pages.cloudflare.com)
+
+| 维度 | 说明 |
+| --- | --- |
+| 类型 | 纯静态文件托管 |
+| 构建产物 | `dist/`（Vite 标准输出） |
+| 域名 | V1 用 `*.cloudflarepages.com` 子域名；未来可绑自定义 |
+| 成本 | 免费（无限请求、无限带宽） |
+| CDN | 全球 300+ 边缘节点 |
+| HTTPS | 自动签发 + 自动续期 |
+| 部署方式 | GitHub 集成：push → 自动构建部署 |
+
+**备选**（未来考虑）：
+- 国内镜像：阿里云 OSS / 腾讯云 COS（应对国内访问 GFW 问题）
+- P2P 镜像：IPFS（去中心化分发）
+
+#### 11.4.2 安全头（`_headers`）
+
+部署时强制设置以下 HTTP 头：
+
+```
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'none'; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+```
+
+| 头 | 作用 |
+| --- | --- |
+| `Content-Security-Policy: connect-src 'none'` | **物理禁止**任何 fetch/XHR/WebSocket，固化"零网络"承诺 |
+| `X-Frame-Options: DENY` | 防止被 iframe 嵌入点击劫持 |
+| `Referrer-Policy: no-referrer` | 不发送来源信息 |
+| `Permissions-Policy` | 禁用定位、相机、麦克风等权限 |
+
+#### 11.4.3 SPA 路由（`_redirects`）
+
+```
+/*    /index.html   200
+```
+
+处理 React Router 的客户端路由（`/today`、`/calendar` 等非根路径刷新不报 404）。
+
+#### 11.4.4 缓存策略
+
+| 资源 | Cache-Control |
+| --- | --- |
+| `index.html` | `no-cache, no-store, must-revalidate` |
+| `/assets/*`（带 hash） | `public, max-age=31536000, immutable` |
+| `/favicon.svg`、`/manifest.json` | `public, max-age=86400` |
+
+#### 11.4.5 自动化部署（CI/CD）
+
+- GitHub Action：`.github/workflows/deploy.yml`
+- 触发：`push` 到 `main` 分支
+- 步骤：install → build → deploy via Wrangler
+- 凭据：`CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`（GitHub Secrets）
+
+#### 11.4.6 部署清单（DoD）
+
+- [ ] Cloudflare Pages 项目创建，绑定 GitHub `ruisheng2266/lumi`
+- [ ] 构建设置：Build command = `npm run build`，Output = `dist`
+- [ ] 自定义域名绑定（未来）
+- [ ] Cloudflare Analytics 关闭（隐私）
+- [ ] GitHub Secrets 注入 `CLOUDFLARE_API_TOKEN`
+- [ ] 首次自动部署成功后，手动 push 一次测试
+
+---
 ### 11.2 工程结构
 ```
 src/
@@ -820,6 +896,7 @@ src/
 | v1.0 | 2026-07-24 | 初稿 |
 | v1.1 | 2026-07-24 | 新增 §6.5 国际化（i18n）：V1 支持 zh-CN + en 双语，预留扩展接口；更新 §5 范围、§7.3 设置项、§8.1 入职流程、§9.5 非功能需求、§11.1 依赖、§12.1 验收、§13 路线图 |
 | v1.2 | 2026-07-24 | 评审通过：移除 V1 导入功能；主题升 P0；入职从 5 步压成 3 步（新增平均经期长度）；周期范围 21~45；移除 BBT 字段；新增 §7.4 user_profile 表 + §7.5 数据库迁移规范；增加测试覆盖率目标和 recharts / testing-library 依赖 |
+| v1.3 | 2026-07-24 | 新增 §11.4 部署架构：确认 Cloudflare Pages 为主部署平台；定义 CSP（connect-src 'none'）/ _headers / _redirects / 缓存策略 / GitHub Action CI；明确隐私边界 |
 
 ---
 

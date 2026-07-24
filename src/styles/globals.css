@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root { color-scheme: light; }
+  html, body { @apply h-full; }
+  body {
+    @apply bg-cream text-ink font-sans antialiased;
+    font-feature-settings: "tnum" 1;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #root { @apply min-h-full; }
+}
+
+@layer components {
+  .card { @apply bg-white rounded-lg shadow-card p-4; }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded bg-lavender-300 px-5 py-3 text-white font-medium transition active:scale-[0.98] hover:bg-lavender-400 disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded px-4 py-2 text-ink transition active:scale-[0.98] hover:bg-lavender-50;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full bg-lavender-50 px-3 py-1 text-sm text-lavender-600;
+  }
+}

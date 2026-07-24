@@ -1,4 +1,4 @@
-﻿/**
+/**
  * src/db.test.ts
  * Dexie schema + repository 集成测试（PRD §7 / §12）
  */

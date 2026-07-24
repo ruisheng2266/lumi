@@ -1,45 +1,207 @@
+import { useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useTranslation } from 'react-i18next';
+import { Download, Trash2, Info } from 'lucide-react';
+import { Card, CardTitle } from '../shared/ui/Card';
+import { Button } from '../shared/ui/Button';
+import { Sheet } from '../shared/ui/Sheet';
 import { useLanguage } from '../shared/i18n/useLanguage';
+import {
+  db,
+  periodRepo,
+  dailyLogRepo,
+  userProfileRepo,
+  settingsRepo,
+} from '../shared/db/client';
+import { today } from '../shared/lib/date';
 
 export function Settings() {
   const { t } = useTranslation();
   const { locale, setLocale, available } = useLanguage();
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const periodsCount = useLiveQuery(() => db.periods.count(), []);
+  const logsCount = useLiveQuery(() => db.dailyLogs.count(), []);
+  const profile = useLiveQuery(() => userProfileRepo.get(), []);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const exportData = {
+        meta: {
+          schemaVersion: 1,
+          exportedAt: new Date().toISOString(),
+          appVersion: '0.1.0',
+          language: locale,
+        },
+        profile: await userProfileRepo.get(),
+        periods: await periodRepo.list(),
+        dailyLogs: await dailyLogRepo.list(),
+        settings: {
+          language: await settingsRepo.get('language'),
+          theme: await settingsRepo.get('theme'),
+          onboarded: await settingsRepo.get('onboarded'),
+        },
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `lumi-backup-${today().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleClear() {
+    await db.delete();
+    await db.open();
+    setConfirmClear(false);
+    // 重置 onboarded 以便下次启动显示入职
+    // （实际效果：用户会被引导重新走入职，但数据库会被清空）
+  }
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">{t('pages.settingsTitle')}</h1>
 
-      <section className="card">
-        <h2 className="text-sm font-medium text-fog mb-3">语言</h2>
-        <div className="space-y-2">
-          {available.map((loc) => (
-            <button
-              key={loc.code}
-              onClick={() => setLocale(loc.code)}
-              className={`w-full text-left rounded-lg px-4 py-3 transition ${
-                locale === loc.code
-                  ? 'bg-lavender-100 ring-2 ring-lavender-300'
-                  : 'hover:bg-lavender-50'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-xl">{loc.flag}</span>
-                <div>
-                  <div className="font-medium">{loc.nativeName}</div>
-                  <div className="text-xs text-fog">{loc.englishName}</div>
-                </div>
-                {locale === loc.code && (
-                  <span className="ml-auto text-lavender-500">✓</span>
-                )}
-              </div>
-            </button>
-          ))}
+      {/* 概况 */}
+      <Card variant="flat">
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <p className="text-2xl font-bold tabular-nums text-lavender-500">
+              {periodsCount ?? 0}
+            </p>
+            <p className="text-xs text-fog mt-1">次月经记录</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold tabular-nums text-coral-500">
+              {logsCount ?? 0}
+            </p>
+            <p className="text-xs text-fog mt-1">条健康日记</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold tabular-nums text-lavender-400">
+              {profile?.avgCycleLen ?? '—'}
+            </p>
+            <p className="text-xs text-fog mt-1">天平均周期</p>
+          </div>
         </div>
+      </Card>
+
+      {/* 语言 */}
+      <section>
+        <CardTitle>{t('settings.language')}</CardTitle>
+        <Card>
+          <div className="space-y-2">
+            {available.map((loc) => (
+              <button
+                key={loc.code}
+                onClick={() => setLocale(loc.code)}
+                className={`w-full text-left rounded-lg px-4 py-3 transition ${
+                  locale === loc.code
+                    ? 'bg-lavender-100 ring-2 ring-lavender-300'
+                    : 'hover:bg-lavender-50'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">{loc.flag}</span>
+                  <div>
+                    <div className="font-medium">{loc.nativeName}</div>
+                    <div className="text-xs text-fog">{loc.englishName}</div>
+                  </div>
+                  {locale === loc.code && (
+                    <span className="ml-auto text-lavender-500">✓</span>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        </Card>
       </section>
 
-      <div className="card text-fog text-sm">
-        <p>隐私设置、数据导出、清空数据……（V1.1 实现）</p>
-      </div>
+      {/* 隐私 */}
+      <section>
+        <CardTitle>{t('settings.privacy')}</CardTitle>
+        <Card>
+          <div className="flex items-start gap-3">
+            <Info size={18} className="text-lavender-500 mt-0.5 shrink-0" />
+            <p className="text-sm text-fog leading-relaxed">
+              {t('settings.privacyNotice')}
+            </p>
+          </div>
+        </Card>
+      </section>
+
+      {/* 数据 */}
+      <section>
+        <CardTitle>{t('settings.about')}</CardTitle>
+        <Card className="space-y-3">
+          <Button
+            variant="ghost"
+            fullWidth
+            leftIcon={<Download size={18} />}
+            onClick={handleExport}
+            disabled={exporting}
+          >
+            {t('settings.exportData')}
+          </Button>
+          <p className="text-xs text-fog -mt-1">{t('settings.exportDataDesc')}</p>
+
+          <div className="border-t border-lavender-100 pt-3">
+            <Button
+              variant="danger"
+              fullWidth
+              leftIcon={<Trash2 size={18} />}
+              onClick={() => setConfirmClear(true)}
+            >
+              {t('settings.clearData')}
+            </Button>
+            <p className="text-xs text-fog mt-2">{t('settings.clearDataDesc')}</p>
+          </div>
+        </Card>
+      </section>
+
+      {/* 关于 */}
+      <section>
+        <Card variant="flat" className="text-center text-xs text-fog py-4 space-y-1">
+          <p>Lumi · {t('settings.version')} 0.1.0</p>
+          <p>本地优先 · 数据归你 · 永远免费</p>
+        </Card>
+      </section>
+
+      {/* 清空确认 Sheet */}
+      <Sheet open={confirmClear} onClose={() => setConfirmClear(false)} title={t('settings.clearConfirmTitle')}>
+        <div className="space-y-4">
+          <p className="text-sm text-ink leading-relaxed">
+            {t('settings.clearConfirmDesc')}
+          </p>
+          <div className="rounded-lg bg-coral-50 p-3 text-sm text-coral-500">
+            ⚠️ 将被删除：
+            <ul className="list-disc list-inside mt-1 space-y-0.5">
+              <li>{periodsCount ?? 0} 次月经记录</li>
+              <li>{logsCount ?? 0} 条健康日记</li>
+              <li>个人档案与设置</li>
+            </ul>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="ghost" fullWidth onClick={() => setConfirmClear(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button variant="danger" fullWidth onClick={handleClear}>
+              {t('settings.clearData')}
+            </Button>
+          </div>
+        </div>
+      </Sheet>
     </div>
   );
 }

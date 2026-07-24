@@ -36,3 +36,11 @@ validation/node_modules/
 # Claude/Codex
 .claude/
 .codex/
+
+# 临时文件
+secrets.json
+build.ps1
+validation/debug*.mjs
+validation/debug-test.ps1
+validation/replace-pms.ps1
+validation/test.ps1

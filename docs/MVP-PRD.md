@@ -1,4 +1,4 @@
-﻿# Lumi — MVP 需求文档（V1）
+# Lumi — MVP 需求文档（V1）
 
 > 版本：v1.2  
 > 日期：2026-07-24  
@@ -313,7 +313,8 @@ function generateInsights(userData): Insight[] {
 
 #### 6.5.3 技术方案
 
-**i18n 库选型**：eact-i18next + i18next
+**i18n 库选型**：
+eact-i18next + i18next
 - 行业标准，TypeScript 友好；
 - 内置浏览器语言检测、复数处理、命名空间、懒加载；
 - 与 date-fns/locale 配合实现日期本地化；

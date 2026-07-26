@@ -1,4 +1,4 @@
-name: Deploy to Cloudflare Pages
+﻿name: Deploy to Cloudflare Pages
 
 on:
   push:
@@ -31,19 +31,18 @@ jobs:
       - name: Type check
         run: npm run type-check
 
-      - name: Build
+      - name: Build static site
         run: npm run build
         env:
           NODE_ENV: production
 
-      - name: Copy Pages Functions into dist
-        run: cp -r functions dist/functions
-
+      # Deploy via wrangler which:
+      # 1. Auto-compiles TS to JS for Pages Functions
+      # 2. Picks up functions/ directory automatically
+      # 3. Reads wrangler.toml for config (D1 binding, env vars)
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: lumi
-          directory: dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          command: pages deploy ./dist --project-name=lumi --branch=main --commit-dirty=true

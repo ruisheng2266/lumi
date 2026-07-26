@@ -33,7 +33,7 @@ export async function initI18n(locale?: SupportedLocale) {
       lng: locale ?? detectLocale(),
       fallbackLng: 'zh-CN',
       supportedLngs: [...SUPPORTED_LOCALES],
-      ns: ['common', 'pages', 'phases', 'insight', 'settings'],
+      ns: ['common', 'nav', 'pages', 'phases', 'onboarding', 'today', 'log', 'mood', 'moodLabel', 'energyLabel', 'symptoms', 'insight', 'settings'],
       defaultNS: 'common',
       resources,
       interpolation: { escapeValue: false, prefix: '{', suffix: '}' },

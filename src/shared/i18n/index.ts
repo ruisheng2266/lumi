@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/shared/i18n/index.ts
  * i18next 配置（PRD §6.5）
  */
@@ -33,7 +33,7 @@ export async function initI18n(locale?: SupportedLocale) {
       lng: locale ?? detectLocale(),
       fallbackLng: 'zh-CN',
       supportedLngs: [...SUPPORTED_LOCALES],
-      ns: ['common', 'pages', 'phases', 'insight'],
+      ns: ['common', 'pages', 'phases', 'insight', 'settings'],
       defaultNS: 'common',
       resources,
       interpolation: { escapeValue: false, prefix: '{', suffix: '}' },

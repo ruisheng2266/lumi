@@ -27,6 +27,22 @@ Lumi 是一款**本地优先**的网页应用（PWA），帮助你追踪月经�
 | **数据导出** | 一键导出 JSON 备份；可跨设备迁移 |
 | **双语支持** | 简体中文 / English，运行时切换，无需刷新 |
 
+## 🔐 用户系统（可选）
+
+Lumi V1 支持 Google 账号登录。
+
+- **登录方式**：Google OAuth 2.0
+- **用户数据存储**：Cloudflare D1（SQLite）
+- **会话方式**：HTTP-only Cookie（30 天有效）
+- **存储内容**：Google profile（id/email/name/picture）
+- **健康数据**：仍仅在 IndexedDB（不上传）
+
+**隐私边界**：登录后你的**身份信息**会存到 D1，但**健康数据**依然**只存在你浏览器本地**。
+
+详细配置：参见 [DEPLOYMENT.md](./DEPLOYMENT.md) 和 [PRD §11.4](./docs/MVP-PRD.md)。
+
+---
+
 ## 🛠️ 技术栈
 
 | 层 | 选型 |

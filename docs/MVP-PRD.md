@@ -1,6 +1,6 @@
 # Lumi — MVP 需求文档（V1）
 
-> 版本：v1.3  
+> 版本：v1.4  
 > 日期：2026-07-24  
 > 状态：待评审
 
@@ -819,6 +819,80 @@ src/
 
 ---
 
+
+### 11.5 用户系统架构（V1.4 新增）
+
+#### 11.5.1 架构
+
+```
+浏览器 → /auth/login (Pages Function)
+        → Google OAuth 2.0
+        → /auth/callback (Pages Function)
+        → Cloudflare D1 (用户身份)
+        → Set-Cookie session=...
+        → 重定向到 /
+
++--------------------+
+|  Cloudflare Pages  |
+|  +--------------+   |
+|  |  Static App  |   |  ← React SPA + IndexedDB (健康数据)
+|  |  + Functions |   |  ← Pages Functions (身份验证)
+|  +--------------+   |
+|         |          |
+|  +------v------+   |
+|  |  D1 (users) |   |  ← 身份数据
+|  |  D1 (sess.)  |   |
+|  +-------------+   |
++--------------------+
+```
+
+#### 11.5.2 数据分布
+
+| 数据 | 位置 | 上传？ |
+| --- | --- | --- |
+| 月经记录、症状、备注 | IndexedDB | ❌ |
+| 用户 profile | Cloudflare D1 | ✅ |
+| 会话 token | HTTP-only Cookie | ✅ |
+
+**核心原则：健康数据永远不离开浏览器。**
+
+#### 11.5.3 端点
+
+| 端点 | 方法 | 功能 |
+| --- | --- | --- |
+| `/auth/login` | GET | 跳转到 Google OAuth |
+| `/auth/callback` | GET | 处理回调，存用户，创建 session |
+| `/auth/logout` | GET/POST | 清除 session |
+| `/auth/me` | GET | 返回当前用户（JSON） |
+
+#### 11.5.4 安全措施
+
+- ✅ HTTP-only + Secure + SameSite=Lax Cookie
+- ✅ CSRF 保护（state 参数）
+- ✅ Session 30 天过期
+- ✅ CSP 限制仅允许 Google 域
+
+#### 11.5.5 数据库 Schema
+
+```sql
+CREATE TABLE users (
+  id TEXT PRIMARY KEY,
+  google_id TEXT UNIQUE NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  name TEXT,
+  picture TEXT,
+  created_at INTEGER NOT NULL,
+  last_login_at INTEGER NOT NULL
+);
+
+CREATE TABLE sessions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  expires_at INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+```
 ## 12. 验收标准（Definition of Done）
 
 ### 12.1 功能完整

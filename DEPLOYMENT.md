@@ -288,6 +288,125 @@ Lumi V1 **不使用任何第三方分析**（隐私承诺）。可选自托管�
 
 ---
 
+## OAuth 配置（Google 登录）
+
+如果需要启用 Google 登录功能（用户身份识别），需要以下配置。
+
+### 步骤 1：Google Cloud Console
+
+#### 1.1 创建项目 + 启用 API
+```
+1. 打开 https://console.cloud.google.com/
+2. 顶部项目下拉框 → 新建项目
+3. 项目名称：lumi
+4. 左侧 → API 和服务 → 库
+5. 搜索并启用：
+   - Google Identity Services
+   - People API
+```
+
+#### 1.2 配置 OAuth 同意屏幕
+```
+1. 左侧 → OAuth 同意屏幕
+2. 用户类型：外部 → 创建
+3. 填写应用名称、用户支持邮箱、开发者联系邮箱
+4. 范围：openid, email, profile
+5. 测试用户：加你自己的 Gmail
+```
+
+#### 1.3 创建 OAuth 客户端 ID
+```
+1. 左侧 → 凭据 → 创建凭据 → OAuth 客户端 ID
+2. 应用类型：Web 应用
+3. 名称：Lumi Web Client
+4. 已授权的 JavaScript 来源：
+   - https://lumi365.com
+   - https://www.lumi365.com
+   - http://localhost:5173（本地开发）
+5. 已授权的重定向 URI（关键！）：
+   - https://lumi365.com/auth/callback
+   - https://www.lumi365.com/auth/callback
+   - http://localhost:5173/auth/callback（开发）
+6. 创建 → 复制 Client ID 和 Client Secret
+```
+
+### 步骤 2：Cloudflare D1 数据库
+```bash
+wrangler login
+wrangler d1 create lumi-db
+```
+记下输出的 database_id。Schema 见 functions/utils/db.ts 注释（users + sessions 两张表）。
+
+### 步骤 3：Pages Functions 代码
+本项目已包含完整代码在 functions/ 目录：
+- functions/auth/login.ts - 发起 OAuth
+- functions/auth/callback.ts - 回调处理
+- functions/auth/logout.ts - 登出
+- functions/auth/me.ts - 当前用户
+- functions/utils/db.ts - D1 助手
+- functions/utils/session.ts - 会话管理
+
+### 步骤 4：wrangler.toml
+```toml
+name = "lumi"
+compatibility_date = "2026-07-24"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "lumi-db"
+database_id = "<你的 database_id>"
+
+[vars]
+PUBLIC_URL = "https://lumi365.com"
+GOOGLE_CLIENT_ID = "<你的 client_id>"
+```
+
+### 步骤 5：部署 + 环境变量
+代码 push 后 GitHub Action 自动部署。
+
+在 Cloudflare Dashboard 添加 Secret：
+```
+1. Cloudflare Dashboard → Workers & Pages → lumi
+2. Settings → Environment variables → Production
+3. 添加：GOOGLE_CLIENT_SECRET = <你的 secret>
+```
+
+或用 wrangler CLI：
+```bash
+wrangler pages secret put GOOGLE_CLIENT_SECRET --project-name=lumi
+```
+
+### 步骤 6：更新 CSP
+在 public/_headers 中必须允许 Google 域（参考本项目已更新的 _headers）：
+- script-src 加 https://accounts.google.com
+- connect-src 加 accounts.google.com 和 googleapis.com
+- form-action 加 https://accounts.google.com
+
+### 步骤 7：测试
+```
+1. 访问 https://lumi365.com/settings
+2. 点击 "用 Google 登录"
+3. 在 Google 登录页选择账号
+4. 同意授权
+5. 跳回 lumi365.com，Settings 应显示你的头像
+```
+
+### 步骤 8：查看 D1 数据
+**方法 1：Cloudflare Dashboard**
+Cloudflare Dashboard → Workers & Pages → D1 → lumi-db → Console
+执行 SQL：SELECT * FROM users;
+
+**方法 2：wrangler CLI**
+```bash
+wrangler d1 execute lumi-db --remote --command "SELECT * FROM users"
+```
+
+**方法 3：Cloudflare API**
+通过 REST API 查询（需要 API Token）。
+
+---
 ## 📚 相关资源
 
 - [Cloudflare Pages 文档](https://developers.cloudflare.com/pages)

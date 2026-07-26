@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useTranslation } from 'react-i18next';
-import { Download, Trash2, Info } from 'lucide-react';
+import { Download, Trash2, Info, LogIn, LogOut } from 'lucide-react';
 import { Card, CardTitle } from '../shared/ui/Card';
 import { Button } from '../shared/ui/Button';
 import { Sheet } from '../shared/ui/Sheet';
 import { useLanguage } from '../shared/i18n/useLanguage';
+import { useAuth } from '../shared/auth/store';
 import {
   db,
   periodRepo,
@@ -18,6 +19,10 @@ import { today } from '../shared/lib/date';
 export function Settings() {
   const { t } = useTranslation();
   const { locale, setLocale, available } = useLanguage();
+  const user = useAuth((s) => s.user);
+  const authLoading = useAuth((s) => s.loading);
+  const login = useAuth((s) => s.login);
+  const logout = useAuth((s) => s.logout);
   const [confirmClear, setConfirmClear] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -73,6 +78,37 @@ export function Settings() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">{t('pages.settingsTitle')}</h1>
 
+      {/* 账号 */}
+      <section>
+        <CardTitle>账号</CardTitle>
+        <Card>
+          {authLoading ? (
+            <p className='text-sm text-fog'>加载中...</p>
+          ) : user ? (
+            <div className='flex items-center gap-3'>
+              {user.picture && (
+                <img src={user.picture} alt='' className='h-10 w-10 rounded-full' referrerPolicy='no-referrer' />
+              )}
+              <div className='flex-1 min-w-0'>
+                <p className='font-medium truncate'>{user.name || user.email}</p>
+                <p className='text-xs text-fog truncate'>{user.email}</p>
+              </div>
+              <Button variant='ghost' size='sm' leftIcon={<LogOut size={16} />} onClick={logout}>
+                登出
+              </Button>
+            </div>
+          ) : (
+            <Button variant='primary' fullWidth leftIcon={<LogIn size={18} />} onClick={login}>
+              用 Google 登录
+            </Button>
+          )}
+          {user && (
+            <p className='mt-3 text-xs text-fog'>登录后可保存偏好到云端；健康数据仍仅存储在本地。</p>
+          )}
+        </Card>
+      </section>
+
+      {/* 概况 */}
       {/* 概况 */}
       <Card variant="flat">
         <div className="grid grid-cols-3 gap-4 text-center">

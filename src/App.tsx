@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './shared/auth/store';
 import { AppShell } from './app/AppShell';
 import { Today } from './pages/Today';
 import { Calendar } from './pages/Calendar';
@@ -8,6 +10,12 @@ import { Settings } from './pages/Settings';
 import { Onboarding } from './pages/Onboarding';
 
 export default function App() {
+  const fetchUser = useAuth((s) => s.fetchUser);
+
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
+
   return (
     <Routes>
       <Route path="/onboarding" element={<Onboarding />} />

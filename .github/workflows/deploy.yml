@@ -1,4 +1,4 @@
-﻿name: Deploy to Cloudflare Pages
+name: Deploy to Cloudflare Pages
 
 on:
   push:
@@ -35,6 +35,9 @@ jobs:
         run: npm run build
         env:
           NODE_ENV: production
+
+      - name: Copy Pages Functions into dist
+        run: cp -r functions dist/functions
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1

@@ -3,25 +3,101 @@
 @tailwind utilities;
 
 @layer base {
-  :root { color-scheme: light; }
-  html, body { @apply h-full; }
-  body {
-    @apply bg-cream text-ink font-sans antialiased;
-    font-feature-settings: "tnum" 1;
-    -webkit-tap-highlight-color: transparent;
+  :root {
+    color-scheme: light;
+
+    /* Lumi 颜色系统（CSS 变量，方便 dark mode 切换） */
+    --color-bg: #FAF7F2;            /* 主背景（暖奶油） */
+    --color-surface: #ffffff;        /* 卡片背景 */
+    --color-text: #2D2A26;           /* 主文字（墨黑） */
+    --color-text-muted: #8B8680;     /* 辅助文字（雾灰） */
+    --color-border: #F5F1FA;         /* 边框 */
+    --color-accent: #C8B6E2;         /* 柔薰衣草 */
+    --color-accent-soft: #F5F1FA;    /* 柔薰衣草浅 */
+    --color-accent-hover: #E8DFF4;
+    --color-coral: #E8B4A0;
+    --color-coral-soft: #FCF3F0;
+    --color-danger: #C57070;
   }
-  #root { @apply min-h-full; }
+
+  .dark {
+    color-scheme: dark;
+    --color-bg: #1A1814;            /* 深暖棕 */
+    --color-surface: #252220;       /* 卡片 */
+    --color-text: #F2EFEA;          /* 浅奶油 */
+    --color-text-muted: #9C958A;    /* 雾灰（暗） */
+    --color-border: #3A3530;
+    --color-accent: #B8A0D6;        /* 薰衣草（暗） */
+    --color-accent-soft: #2D2734;
+    --color-accent-hover: #3D344A;
+    --color-coral: #D89A87;         /* 珊瑚（暗） */
+    --color-coral-soft: #2E2520;
+    --color-danger: #D88888;
+  }
+
+  html, body { @apply h-full; }
+
+  body {
+    @apply antialiased;
+    -webkit-tap-highlight-color: transparent;
+    font-feature-settings: "tnum" 1;
+  }
 }
 
 @layer components {
-  .card { @apply bg-white rounded-lg shadow-card p-4; }
+  .card {
+    @apply rounded-lg shadow-card p-4;
+    background-color: var(--color-surface);
+    color: var(--color-text);
+  }
+
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded bg-lavender-300 px-5 py-3 text-white font-medium transition active:scale-[0.98] hover:bg-lavender-400 disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded px-5 py-3 text-white font-medium transition active:scale-[0.98] disabled:opacity-50;
+    background-color: var(--color-accent);
   }
+  .btn-primary:hover {
+    background-color: var(--color-accent-hover);
+  }
+
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded px-4 py-2 text-ink transition active:scale-[0.98] hover:bg-lavender-50;
+    @apply inline-flex items-center justify-center gap-2 rounded px-4 py-2 font-medium transition active:scale-[0.98];
+    color: var(--color-text);
   }
+  .btn-ghost:hover {
+    background-color: var(--color-accent-soft);
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded px-4 py-2 text-white font-medium transition active:scale-[0.98];
+    background-color: var(--color-danger);
+  }
+
   .chip {
-    @apply inline-flex items-center gap-1 rounded-full bg-lavender-50 px-3 py-1 text-sm text-lavender-600;
+    @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm;
+    background-color: var(--color-accent-soft);
+    color: var(--color-accent);
   }
+}
+
+/* 暗色模式适配 Tailwind 颜色 */
+@layer base {
+  .bg-cream { background-color: var(--color-bg); }
+  body { background-color: var(--color-bg); color: var(--color-text); }
+
+  .text-ink { color: var(--color-text); }
+  .text-fog { color: var(--color-text-muted); }
+
+  .bg-lavender-300 { background-color: var(--color-accent); }
+  .bg-lavender-50 { background-color: var(--color-accent-soft); }
+  .bg-lavender-100 { background-color: var(--color-accent-soft); }
+  .hover\:bg-lavender-50:hover { background-color: var(--color-accent-soft); }
+  .text-lavender-500 { color: var(--color-accent); }
+  .text-lavender-600 { color: var(--color-accent); }
+
+  .bg-coral-300 { background-color: var(--color-coral); }
+  .bg-coral-50 { background-color: var(--color-coral-soft); }
+  .text-coral-500 { color: var(--color-coral); }
+
+  .border-lavender-100 { border-color: var(--color-border); }
+  .border-lavender-50 { border-color: var(--color-border); }
 }

@@ -178,4 +178,5 @@ export const resources = {
       privacyNotice: 'Lumi V1 never uploads data to any server. Verify in DevTools Network panel.',
     },
   },
+
 } as const;

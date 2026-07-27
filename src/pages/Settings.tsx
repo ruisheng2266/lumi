@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useTranslation } from 'react-i18next';
-import { Download, Trash2, Info, LogIn, LogOut } from 'lucide-react';
+import { Download, Trash2, Info, LogIn, LogOut, Sun, Moon } from 'lucide-react';
 import { Card, CardTitle } from '../shared/ui/Card';
 import { Button } from '../shared/ui/Button';
 import { Sheet } from '../shared/ui/Sheet';
+import { Select } from '../shared/ui/Select';
 import { useLanguage } from '../shared/i18n/useLanguage';
 import { useAuth } from '../shared/auth/store';
 import {
@@ -15,6 +16,7 @@ import {
   settingsRepo,
 } from '../shared/db/client';
 import { today } from '../shared/lib/date';
+import { useTheme } from '../shared/theme/useTheme';
 
 export function Settings() {
   const { t } = useTranslation();
@@ -23,6 +25,7 @@ export function Settings() {
   const authLoading = useAuth((s) => s.loading);
   const login = useAuth((s) => s.login);
   const logout = useAuth((s) => s.logout);
+  const { theme, toggleTheme } = useTheme();
   const [confirmClear, setConfirmClear] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -70,8 +73,6 @@ export function Settings() {
     await db.delete();
     await db.open();
     setConfirmClear(false);
-    // 重置 onboarded 以便下次启动显示入职
-    // （实际效果：用户会被引导重新走入职，但数据库会被清空）
   }
 
   return (
@@ -83,83 +84,93 @@ export function Settings() {
         <CardTitle>账号</CardTitle>
         <Card>
           {authLoading ? (
-            <p className='text-sm text-fog'>加载中...</p>
+            <p className="text-sm text-fog">加载中...</p>
           ) : user ? (
-            <div className='flex items-center gap-3'>
+            <div className="flex items-center gap-3">
               {user.picture && (
-                <img src={user.picture} alt='' className='h-10 w-10 rounded-full' referrerPolicy='no-referrer' />
+                <img src={user.picture} alt="" className="h-10 w-10 rounded-full" referrerPolicy="no-referrer" />
               )}
-              <div className='flex-1 min-w-0'>
-                <p className='font-medium truncate'>{user.name || user.email}</p>
-                <p className='text-xs text-fog truncate'>{user.email}</p>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate">{user.name || user.email}</p>
+                <p className="text-xs text-fog truncate">{user.email}</p>
               </div>
-              <Button variant='ghost' size='sm' leftIcon={<LogOut size={16} />} onClick={logout}>
+              <Button variant="ghost" size="sm" leftIcon={<LogOut size={16} />} onClick={logout}>
                 登出
               </Button>
             </div>
           ) : (
-            <Button variant='primary' fullWidth leftIcon={<LogIn size={18} />} onClick={login}>
+            <Button variant="primary" fullWidth leftIcon={<LogIn size={18} />} onClick={login}>
               用 Google 登录
             </Button>
           )}
           {user && (
-            <p className='mt-3 text-xs text-fog'>登录后可保存偏好到云端；健康数据仍仅存储在本地。</p>
+            <p className="mt-3 text-xs text-fog">登录后可保存偏好到云端；健康数据仍仅存储在本地。</p>
           )}
         </Card>
       </section>
 
       {/* 概况 */}
-      {/* 概况 */}
-      <Card variant="flat">
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <p className="text-2xl font-bold tabular-nums text-lavender-500">
-              {periodsCount ?? 0}
-            </p>
-            <p className="text-xs text-fog mt-1">次月经记录</p>
+      <section>
+        <Card variant="flat">
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <p className="text-2xl font-bold tabular-nums text-lavender-500">
+                {periodsCount ?? 0}
+              </p>
+              <p className="text-xs text-fog mt-1">次月经记录</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold tabular-nums text-coral-500">
+                {logsCount ?? 0}
+              </p>
+              <p className="text-xs text-fog mt-1">条健康日记</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold tabular-nums text-lavender-400">
+                {profile?.avgCycleLen ?? '—'}
+              </p>
+              <p className="text-xs text-fog mt-1">天平均周期</p>
+            </div>
           </div>
-          <div>
-            <p className="text-2xl font-bold tabular-nums text-coral-500">
-              {logsCount ?? 0}
-            </p>
-            <p className="text-xs text-fog mt-1">条健康日记</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold tabular-nums text-lavender-400">
-              {profile?.avgCycleLen ?? '—'}
-            </p>
-            <p className="text-xs text-fog mt-1">天平均周期</p>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      </section>
 
-      {/* 语言 */}
+      {/* 语言（下拉框） */}
       <section>
         <CardTitle>{t('settings.language')}</CardTitle>
         <Card>
-          <div className="space-y-2">
-            {available.map((loc) => (
-              <button
-                key={loc.code}
-                onClick={() => setLocale(loc.code)}
-                className={`w-full text-left rounded-lg px-4 py-3 transition ${
-                  locale === loc.code
-                    ? 'bg-lavender-100 ring-2 ring-lavender-300'
-                    : 'hover:bg-lavender-50'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">{loc.flag}</span>
-                  <div>
-                    <div className="font-medium">{loc.nativeName}</div>
-                    <div className="text-xs text-fog">{loc.englishName}</div>
-                  </div>
-                  {locale === loc.code && (
-                    <span className="ml-auto text-lavender-500">✓</span>
-                  )}
-                </div>
-              </button>
-            ))}
+          <Select
+            value={locale}
+            onChange={(v) => setLocale(v as typeof locale)}
+            options={available.map((loc) => ({
+              value: loc.code,
+              label: loc.nativeName,
+              hint: loc.englishName,
+              flag: loc.flag,
+            }))}
+          />
+        </Card>
+      </section>
+
+      {/* 主题 */}
+      <section>
+        <CardTitle>{t('settings.theme')}</CardTitle>
+        <Card>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant={theme === 'light' ? 'primary' : 'ghost'}
+              onClick={() => theme !== 'light' && toggleTheme()}
+              leftIcon={<Sun size={16} />}
+            >
+              {t('settings.themeLight')}
+            </Button>
+            <Button
+              variant={theme === 'dark' ? 'primary' : 'ghost'}
+              onClick={() => theme !== 'dark' && toggleTheme()}
+              leftIcon={<Moon size={16} />}
+            >
+              {t('settings.themeDark')}
+            </Button>
           </div>
         </Card>
       </section>
@@ -170,9 +181,7 @@ export function Settings() {
         <Card>
           <div className="flex items-start gap-3">
             <Info size={18} className="text-lavender-500 mt-0.5 shrink-0" />
-            <p className="text-sm text-fog leading-relaxed">
-              {t('settings.privacyNotice')}
-            </p>
+            <p className="text-sm text-fog leading-relaxed">{t('settings.privacyNotice')}</p>
           </div>
         </Card>
       </section>
@@ -217,9 +226,7 @@ export function Settings() {
       {/* 清空确认 Sheet */}
       <Sheet open={confirmClear} onClose={() => setConfirmClear(false)} title={t('settings.clearConfirmTitle')}>
         <div className="space-y-4">
-          <p className="text-sm text-ink leading-relaxed">
-            {t('settings.clearConfirmDesc')}
-          </p>
+          <p className="text-sm text-ink leading-relaxed">{t('settings.clearConfirmDesc')}</p>
           <div className="rounded-lg bg-coral-50 p-3 text-sm text-coral-500">
             ⚠️ 将被删除：
             <ul className="list-disc list-inside mt-1 space-y-0.5">

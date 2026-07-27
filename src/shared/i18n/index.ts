@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/shared/i18n/index.ts
  * i18next 配置（PRD §6.5）
  */
@@ -18,7 +18,7 @@ export function detectLocale(): SupportedLocale {
   if (SUPPORTED_LOCALES.includes(nav as SupportedLocale)) {
     return nav as SupportedLocale;
   }
-  return 'zh-CN';
+  return 'en';
 }
 
 let initialized = false;
@@ -31,7 +31,7 @@ export async function initI18n(locale?: SupportedLocale) {
     .use(initReactI18next)
     .init({
       lng: locale ?? detectLocale(),
-      fallbackLng: 'zh-CN',
+      fallbackLng: 'en',
       supportedLngs: [...SUPPORTED_LOCALES],
       ns: ['common', 'nav', 'pages', 'phases', 'onboarding', 'today', 'log', 'mood', 'moodLabel', 'energyLabel', 'symptoms', 'insight', 'settings'],
       defaultNS: 'common',

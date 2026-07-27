@@ -1,0 +1,51 @@
+{
+  "name": "Lumi",
+  "short_name": "Lumi",
+  "description": "温柔、私密、只属于你的女性健康追踪工具。所有数据仅存储在你的浏览器中。",
+  "lang": "zh-CN",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF7F2",
+  "theme_color": "#C8B6E2",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "lifestyle", "medical"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "今日",
+      "short_name": "Today",
+      "description": "记录今天的身体状态",
+      "url": "/today",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "记录",
+      "short_name": "Log",
+      "description": "快速记录健康日记",
+      "url": "/log",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    }
+  ]
+}

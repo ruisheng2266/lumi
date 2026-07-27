@@ -407,6 +407,19 @@ wrangler d1 execute lumi-db --remote --command "SELECT * FROM users"
 通过 REST API 查询（需要 API Token）。
 
 ---
+
+
+## 📱 PWA（V1.4 新增）
+
+部署后自动启用 PWA：
+
+- 打开 https://lumi365.com → 浏览器地址栏右侧出现安装 Lumi 按钮
+- iOS Safari → 分享 → 添加到主屏
+- Android Chrome → 菜单 → 添加到主屏
+
+文件：
+- public/manifest.webmanifest
+- public/sw.js（service worker，network-first + cache fallback）
 ## 📚 相关资源
 
 - [Cloudflare Pages 文档](https://developers.cloudflare.com/pages)
@@ -416,4 +429,4 @@ wrangler d1 execute lumi-db --remote --command "SELECT * FROM users"
 
 ---
 
-> 最后更新：2026-07-24（v1.3）
+> 最后更新：2026-07-27（v1.4）

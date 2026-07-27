@@ -28,6 +28,23 @@ Lumi 是一款**本地优先**的网页应用（PWA），帮助你追踪月经�
 | **双语支持** | 简体中文 / English，运行时切换，无需刷新 |
 
 ## 🔐 用户系统（可选）
+## 🎨 主题切换（V1.4）
+
+Lumi V1.4 支持浅色 / 深色模式：
+
+- 设置 → 主题（浅色 / 深色两选一）
+- 选择持久化到 IndexedDB
+- 颜色用 CSS 变量定义，切换无闪烁
+- dark class 加在 html 元素上
+
+## 📱 PWA（V1.4）
+
+Lumi V1.4 支持安装到桌面 / 主屏：
+
+- public/manifest.webmanifest 含名称、图标、shortcuts
+- public/sw.js 网络优先 + 缓存回退
+- iOS / Android 可添加到主屏
+- 离线后仍可访问已浏览页面
 
 Lumi V1 支持 Google 账号登录。
 

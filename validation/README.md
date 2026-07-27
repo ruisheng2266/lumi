@@ -1,4 +1,4 @@
-﻿# 技术验证报告 — Lumi V1
+# 技术验证报告 — Lumi V1
 
 > 日期：2026-07-24  
 > 范围：Dexie schema + i18next 接入 + predict.ts 算法  

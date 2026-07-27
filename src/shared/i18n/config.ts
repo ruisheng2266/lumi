@@ -1,4 +1,4 @@
-/**
+﻿/**
  * src/shared/i18n/config.ts
  */
 export const SUPPORTED_LOCALES = ['zh-CN', 'en'] as const;
@@ -44,6 +44,9 @@ export const resources = {
       welcomeTitle: '欢迎来到 Lumi',
       welcomeDesc: '温柔、私密、只属于你。所有数据只存在你的浏览器里。',
       language: '语言',
+      theme: '主题',
+      themeLight: '浅色',
+      themeDark: '深色',
       nickname: '昵称（可选）',
       nicknamePlaceholder: '珊珊',
       lastPeriodTitle: '最近一次月经',
@@ -99,6 +102,9 @@ export const resources = {
     },
     settings: {
       language: '语言',
+      theme: '主题',
+      themeLight: '浅色',
+      themeDark: '深色',
       privacy: '隐私',
       exportData: '导出数据',
       exportDataDesc: '下载所有数据为 JSON 文件，可备份或在其他设备导入',
@@ -129,7 +135,10 @@ export const resources = {
     onboarding: {
       welcomeTitle: 'Welcome to Lumi',
       welcomeDesc: 'Gentle, private, just for you. All data stays in your browser.',
-      language: 'Language', nickname: 'Nickname (optional)', nicknamePlaceholder: 'Sara',
+      language: 'Language',
+      theme: 'Theme',
+      themeLight: 'Light',
+      themeDark: 'Dark', nickname: 'Nickname (optional)', nicknamePlaceholder: 'Sara',
       lastPeriodTitle: 'Your last period', lastPeriodDesc: 'We use this to calculate your cycle. You can adjust later.',
       lastPeriodDate: 'Start date', pickRecent: 'Pick from recent days',
       cycleTitle: 'Your cycle', cycleDesc: 'We use these defaults for predictions. Adjustable anytime.',
@@ -170,7 +179,10 @@ export const resources = {
       data_needed: 'Log 1-2 more periods for more accurate predictions',
     },
     settings: {
-      language: 'Language', privacy: 'Privacy',
+      language: 'Language',
+      theme: 'Theme',
+      themeLight: 'Light',
+      themeDark: 'Dark', privacy: 'Privacy',
       exportData: 'Export data', exportDataDesc: 'Download all data as JSON for backup or transfer.',
       clearData: 'Clear all data', clearDataDesc: 'Delete all records permanently. Cannot be undone.',
       clearConfirmTitle: 'Clear all data?', clearConfirmDesc: 'This cannot be undone. All records will be permanently deleted.',

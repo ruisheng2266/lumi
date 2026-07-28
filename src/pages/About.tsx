@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Heart, Shield, Brain, Database, Wrench, Users, Github, ArrowLeft, Sparkles } from 'lucide-react';
 import { Card, CardTitle } from '../shared/ui/Card';
+import { APP_VERSION, APP_LAST_UPDATED } from '../shared/version';
 
 export function About() {
   const { t } = useTranslation();
@@ -37,7 +38,7 @@ export function About() {
         <div className="grid grid-cols-3 gap-3 text-sm">
           <div>
             <p className="text-xs text-fog">{t('about.version')}</p>
-            <p className="font-semibold tabular-nums mt-1">{t('about.versionValue')}</p>
+            <p className="font-semibold tabular-nums mt-1">{APP_VERSION}</p>
           </div>
           <div>
             <p className="text-xs text-fog">{t('about.schemaVersion')}</p>
@@ -45,7 +46,7 @@ export function About() {
           </div>
           <div>
             <p className="text-xs text-fog">{t('about.lastUpdated')}</p>
-            <p className="font-semibold tabular-nums mt-1">2026-07-28</p>
+            <p className="font-semibold tabular-nums mt-1">{APP_LAST_UPDATED}</p>
           </div>
         </div>
       </Card>

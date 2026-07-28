@@ -102,6 +102,22 @@ export function MonthCalendar({ periods, userAvgCycle, userAvgPeriod, onDayClick
     }
   }
 
+  // 排卵日独立标记（审计 #6）
+  const ovulationDays = new Set<string>();
+  if (prediction.ovulationDay) ovulationDays.add(prediction.ovulationDay);
+
+  // 预测下次经期范围（审计 #7）
+  const predictedPeriodDays = new Set<string>();
+  if (prediction.nextPeriodStart && prediction.nextPeriodEnd) {
+    const start = parseISO(prediction.nextPeriodStart);
+    const end = parseISO(prediction.nextPeriodEnd);
+    let cur = new Date(start);
+    while (cur.getTime() <= end.getTime()) {
+      predictedPeriodDays.add(format(cur, 'yyyy-MM-dd'));
+      cur.setDate(cur.getDate() + 1);
+    }
+  }
+
   const weekDayLabels = t('calendar.weekdaysShort', { returnObjects: true }) as string[];
 
   return (
@@ -140,15 +156,25 @@ export function MonthCalendar({ periods, userAvgCycle, userAvgPeriod, onDayClick
           const isToday = isSameDay(day, today);
           const isPeriod = periodDays.has(iso);
           const isFertile = fertileDays.has(iso);
+          const isOvulation = ovulationDays.has(iso);
+          const isPredictedPeriod = predictedPeriodDays.has(iso);
           const phase = phaseByDay.get(iso);
 
           let bg = 'bg-cream';
           let text = inMonth ? 'text-ink' : 'text-fog/50';
           let decoration = '';
+          let marker: string | null = null;
 
           if (isPeriod) {
             bg = 'bg-coral-300';
             text = 'text-white';
+          } else if (isPredictedPeriod) {
+            bg = 'bg-coral-100 ring-1 ring-coral-300';
+            text = 'text-coral-700';
+            marker = '≈';
+          } else if (isOvulation) {
+            bg = 'bg-coral-100 ring-1 ring-coral-300';
+            marker = '✸';
           } else if (isFertile) {
             bg = 'bg-coral-50 ring-1 ring-coral-200';
           } else if (phase && inMonth) {
@@ -178,6 +204,9 @@ export function MonthCalendar({ periods, userAvgCycle, userAvgPeriod, onDayClick
                 {format(day, 'd')}
               </span>
               {isPeriod && <span className="text-[10px] leading-none">●</span>}
+              {marker && !isPeriod && (
+                <span className="text-[10px] leading-none text-coral-500">{marker}</span>
+              )}
             </button>
           );
         })}
@@ -192,6 +221,14 @@ export function MonthCalendar({ periods, userAvgCycle, userAvgPeriod, onDayClick
         <div className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 rounded bg-coral-50 ring-1 ring-coral-200"></span>
           {t('calendar.legendFertile')}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-3 rounded bg-coral-100 ring-1 ring-coral-300 text-center text-[9px] leading-3 text-coral-500">✸</span>
+          {t('calendar.legendOvulation')}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-3 rounded bg-coral-100 ring-1 ring-coral-300 text-center text-[9px] leading-3 text-coral-500">≈</span>
+          {t('calendar.legendPredicted')}
         </div>
         <div className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 rounded ring-2 ring-lavender-400"></span>

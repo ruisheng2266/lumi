@@ -17,6 +17,7 @@ import {
   type CyclePrediction,
 } from './predict';
 import type { DailyLog } from '../db/client';
+import { resources } from '../i18n/config';
 
 export type InsightCategory =
   | 'regularity'
@@ -25,6 +26,16 @@ export type InsightCategory =
   | 'sleep_mood'
   | 'today'
   | 'anomaly';
+
+/** 所有洞察分类（顺序即 UI 展示顺序，审计 #3） */
+export const INSIGHT_CATEGORIES: InsightCategory[] = [
+  'regularity',
+  'pms',
+  'energy_phase',
+  'sleep_mood',
+  'today',
+  'anomaly',
+];
 
 export type InsightSeverity = 'info' | 'gentle' | 'important';
 
@@ -55,6 +66,8 @@ interface InsightContext {
   userAvgPeriod?: number;
   /** Optional i18n translator; if absent, fallback to Chinese strings */
   t?: TranslateFn;
+  /** 需要隐藏（关闭）的洞察分类（审计 #3） */
+  disabledCategories?: InsightCategory[];
 }
 
 /**
@@ -81,9 +94,10 @@ export function generateInsights(ctx: InsightContext): Insight[] {
   const r6 = anomalyInsight(ctx);
   if (r6) insights.push(r6);
 
-  return insights.sort(
-    (a, b) => severityRank(b.severity) - severityRank(a.severity),
-  );
+  const disabled = new Set(ctx.disabledCategories ?? []);
+  return insights
+    .filter((i) => !disabled.has(i.category))
+    .sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
 }
 
 function severityRank(s: InsightSeverity): number {
@@ -209,8 +223,12 @@ function pmsPatternInsight(ctx: InsightContext): Insight | null {
 
   // 取最显著的 3 个
   const top3 = pmsSymptoms.slice(0, 3);
-  // PMS 症状翻译需要症状 label (i18n)，暂用症状 id；en 文案可后续单独加映射
-  const top3Labels = top3;
+
+  // 症状名本地化：有 t 时走 i18n（symptoms.*），无 t 时回落 zh-CN 资源，避免暴露原始 id（审计 #5）
+  const zhSymptoms = resources['zh-CN'].symptoms as Record<string, string>;
+  const symptomLabel = (s: string): string => (t ? t(`symptoms.${s}`) : (zhSymptoms[s] ?? s));
+  const sep = t ? (t('common.days') === 'days' ? ', ' : '、') : '、';
+  const top3Text = top3.map(symptomLabel).join(sep);
 
   const tr = (key: string, params?: Record<string, unknown>) =>
     t ? t(`insight.template.pms.${key}`, params) : '';
@@ -222,8 +240,8 @@ function pmsPatternInsight(ctx: InsightContext): Insight | null {
     emoji: '🌸',
     title: t ? tr('title') : '发现 PMS 模式',
     data: t
-      ? tr('data', { top3: top3Labels.join(t('common.days') === 'days' ? ', ' : '、') })
-      : `经前 7 天最常出现：${top3.join('、')}`,
+      ? tr('data', { top3: top3Text })
+      : `经前 7 天最常出现：${top3Text}`,
     interpretation: t ? tr('interpretation') : '这些症状在经前期明显更频繁，可能是经前综合征的表现。',
     suggestion: t ? tr('suggestion') : '记下出现的时间和强度，未来可以提前准备（如备好止痛药、调整日程）。',
   };
@@ -527,6 +545,7 @@ export function buildInsights(
   userAvgCycle?: number,
   userAvgPeriod?: number,
   t?: TranslateFn,
+  disabledCategories?: InsightCategory[],
 ): Insight[] {
   const prediction = predictCycle(periods, today, userAvgCycle, userAvgPeriod);
   return generateInsights({
@@ -537,5 +556,6 @@ export function buildInsights(
     userAvgCycle,
     userAvgPeriod,
     t,
+    disabledCategories,
   });
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, Heart } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart, Sun, Moon, Monitor } from 'lucide-react';
 import { Button } from '../shared/ui/Button';
 import { Card } from '../shared/ui/Card';
 import { Sheet } from '../shared/ui/Sheet';
@@ -9,6 +9,7 @@ import { useLanguage } from '../shared/i18n/useLanguage';
 import { userProfileRepo, settingsRepo, periodRepo } from '../shared/db/client';
 import { today } from '../shared/lib/date';
 import { toISODate } from '../shared/lib/date';
+import { useTheme } from '../shared/theme/useTheme';
 
 type Step = 1 | 2 | 3;
 
@@ -22,6 +23,7 @@ export function Onboarding() {
   const [avgCycleLen, setAvgCycleLen] = useState(28);
   const [avgPeriodLen, setAvgPeriodLen] = useState(5);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   const handleNext = () => {
     if (step < 3) setStep((step + 1) as Step);
@@ -119,6 +121,44 @@ export function Onboarding() {
                 maxLength={30}
                 className="w-full rounded-lg border border-lavender-100 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-lavender-300"
               />
+            </Card>
+
+            <Card>
+              <h2 className="text-sm font-medium text-fog mb-3">
+                {t('onboarding.theme')}
+              </h2>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTheme('light')}
+                  className={`rounded-lg px-3 py-3 text-sm transition flex flex-col items-center gap-1 ${
+                    theme === 'light' ? 'bg-lavender-100 ring-2 ring-lavender-300' : 'hover:bg-lavender-50'
+                  }`}
+                >
+                  <Sun size={18} className="text-lavender-500" />
+                  {t('onboarding.themeLight')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTheme('dark')}
+                  className={`rounded-lg px-3 py-3 text-sm transition flex flex-col items-center gap-1 ${
+                    theme === 'dark' ? 'bg-lavender-100 ring-2 ring-lavender-300' : 'hover:bg-lavender-50'
+                  }`}
+                >
+                  <Moon size={18} className="text-lavender-500" />
+                  {t('onboarding.themeDark')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTheme('system')}
+                  className={`rounded-lg px-3 py-3 text-sm transition flex flex-col items-center gap-1 ${
+                    theme === 'system' ? 'bg-lavender-100 ring-2 ring-lavender-300' : 'hover:bg-lavender-50'
+                  }`}
+                >
+                  <Monitor size={18} className="text-lavender-500" />
+                  {t('onboarding.themeSystem')}
+                </button>
+              </div>
             </Card>
           </div>
         )}

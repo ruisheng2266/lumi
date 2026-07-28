@@ -40,11 +40,18 @@ export interface Setting<T = unknown> {
   value: T;
 }
 
+/** 洞察分类开关偏好（PRD §7 / 审计 #3）：key 为洞察分类名，enabled 表示是否展示 */
+export interface InsightPref {
+  key: string;
+  enabled: boolean;
+}
+
 export class LumiDB extends Dexie {
   periods!: Table<Period, number>;
   dailyLogs!: Table<DailyLog, number>;
   userProfile!: Table<UserProfile, number>;
   settings!: Table<Setting, string>;
+  insightPrefs!: Table<InsightPref, string>;
 
   constructor() {
     super('LumiDB');
@@ -55,6 +62,11 @@ export class LumiDB extends Dexie {
       dailyLogs: '++id, &date, createdAt, updatedAt',
       userProfile: '++id',
       settings: '&key',
+    });
+
+    // v2 schema: 增加洞察分类偏好表（审计 #3）
+    this.version(2).stores({
+      insightPrefs: '&key',
     });
   }
 }
@@ -125,5 +137,22 @@ export const settingsRepo = {
   },
   async set<T = unknown>(key: string, value: T) {
     return await db.settings.put({ key, value });
+  },
+};
+
+// Repository: InsightPrefs (洞察分类开关持久化)
+export const insightPrefRepo = {
+  async getAll(): Promise<Record<string, boolean>> {
+    const all = await db.insightPrefs.toArray();
+    const map: Record<string, boolean> = {};
+    for (const p of all) map[p.key] = p.enabled;
+    return map;
+  },
+  async get(key: string): Promise<boolean | undefined> {
+    const p = await db.insightPrefs.get(key);
+    return p?.enabled;
+  },
+  async set(key: string, enabled: boolean) {
+    return await db.insightPrefs.put({ key, enabled });
   },
 };

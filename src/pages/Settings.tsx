@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useTranslation } from 'react-i18next';
-import { Download, Trash2, Info, LogIn, LogOut, Sun, Moon } from 'lucide-react';
+import { Download, Trash2, Info, LogIn, LogOut, Sun, Moon, Monitor } from 'lucide-react';
 import { Card, CardTitle } from '../shared/ui/Card';
 import { Button } from '../shared/ui/Button';
 import { Sheet } from '../shared/ui/Sheet';
@@ -18,6 +18,7 @@ import {
 } from '../shared/db/client';
 import { today } from '../shared/lib/date';
 import { useTheme } from '../shared/theme/useTheme';
+import { APP_VERSION } from '../shared/version';
 
 export function Settings() {
   const { t } = useTranslation();
@@ -26,7 +27,7 @@ export function Settings() {
   const authLoading = useAuth((s) => s.loading);
   const login = useAuth((s) => s.login);
   const logout = useAuth((s) => s.logout);
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [confirmClear, setConfirmClear] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -41,7 +42,7 @@ export function Settings() {
         meta: {
           schemaVersion: 1,
           exportedAt: new Date().toISOString(),
-          appVersion: '0.1.0',
+          appVersion: APP_VERSION,
           language: locale,
         },
         profile: await userProfileRepo.get(),
@@ -161,20 +162,27 @@ export function Settings() {
       <section>
         <CardTitle>{t('settings.theme')}</CardTitle>
         <Card>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <Button
               variant={theme === 'light' ? 'primary' : 'ghost'}
-              onClick={() => theme !== 'light' && toggleTheme()}
+              onClick={() => setTheme('light')}
               leftIcon={<Sun size={16} />}
             >
               {t('settings.themeLight')}
             </Button>
             <Button
               variant={theme === 'dark' ? 'primary' : 'ghost'}
-              onClick={() => theme !== 'dark' && toggleTheme()}
+              onClick={() => setTheme('dark')}
               leftIcon={<Moon size={16} />}
             >
               {t('settings.themeDark')}
+            </Button>
+            <Button
+              variant={theme === 'system' ? 'primary' : 'ghost'}
+              onClick={() => setTheme('system')}
+              leftIcon={<Monitor size={16} />}
+            >
+              {t('settings.themeSystem')}
             </Button>
           </div>
         </Card>
@@ -226,7 +234,7 @@ export function Settings() {
           to="/about"
           className="block rounded-2xl border border-lavender-100 bg-white text-center text-xs text-fog py-4 px-3 space-y-1 hover:bg-lavender-50 transition"
         >
-          <p className="font-medium text-ink">Lumi · {t('settings.version')} 0.1.0</p>
+          <p className="font-medium text-ink">Lumi · {t('settings.version')} {APP_VERSION}</p>
           <p>{t('overview.tagline')}</p>
           <p className="text-lavender-500 mt-1">{t('about.title')} →</p>
         </Link>

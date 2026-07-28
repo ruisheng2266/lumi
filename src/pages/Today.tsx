@@ -198,13 +198,13 @@ export function Today() {
         </Button>
       </div>
 
-      {/* 置信度提示 */}
+      {/* 置信度提示（审计 #8：4 档分级文案） */}
       {prediction.confidence !== 'high' && (
         <Card variant="flat" className="flex items-start gap-3">
           <Sparkles size={18} className="text-lavender-500 mt-0.5 shrink-0" />
           <div className="text-sm">
             <p className="text-fog">
-              {t(`insight.data_needed`)}
+              {t(`today.${prediction.confidence === 'low' ? 'confidenceLow' : prediction.confidence === 'medium' ? 'confidenceMedium' : 'confidenceNone'}`)}
             </p>
             <p className="text-xs text-fog mt-1">
               {t('common.loggedDays', { count: prediction.cycleCount })}

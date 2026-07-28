@@ -1,8 +1,8 @@
 # Lumi — MVP 需求文档（V1.4）
 
-> 版本：v1.6  
+> 版本：v1.7  
 > 日期：2026-07-28  
-> 状态：V1.4 增量（账号系统 / PWA / 主题）已落地，文档对齐；剩余 V1.x 收尾项见 §13 / §15.3
+> 状态：V1.4 + V1.5 收尾全部完成，v0.2.0 已发布到 GitHub 并部署到 Cloudflare Pages
 
 ---
 
@@ -981,6 +981,8 @@ CREATE TABLE sessions (
 | v1.4 | 2026-07-26 | **实施增量**：新增 §11.5 用户系统（Google OAuth + Cloudflare D1 + Pages Functions /auth/login|callback|logout|me），Settings 页加入"账号"卡片，Cloudflare Wrangler 部署配置（D1 binding + GOOGLE_CLIENT_ID vars）。**健康数据继续仅存 IndexedDB**，账号系统仅承载偏好与身份。 |
 | v1.5 | 2026-07-27 | PWA 与主题切换提前到 V1.4 同期发布：public/manifest.webmanifest + public/sw.js + public/_headers（HSTS / Permissions-Policy / COOP / COEP）+ useTheme 浅/深切换 + CSS 变量重定义（globals.css）。 |
 | v1.6 | 2026-07-28 | 文档对齐实际实现：§1 文档版本/目标版本/范围；§5.1 新增"用户系统"行；§5.2 移除"账号系统"（已纳入 §11.5）；§11.4.2 CSP 示例同步为 V1.4 实际值（含 Google 域白名单与 COOP/COEP）；§13 路线图标注 V1 / V1.4 已发布、V1.5 收尾项。 |
+| v1.7 | 2026-07-28 | **V1.5 收尾全部完成**：<br>• **i18n 硬编码清理**：13 个新命名空间（`account` / `overview` / `calendar` / `clear` / `logPage` / `periodEdit` / `logEdit` / `day` / `logList` / `confirm` / `flow` / `chart` / `about` / `template`），共 ~250 个 key × zh-CN + en 双语；`src/shared/lib/insights.ts` 重构为可选 `TranslateFn` 注入，单测零改动。<br>• **CRUD UI**：新增 `PeriodEditSheet` / `LogEditSheet` / `DayDetailSheet` 三个 Sheet；月经 / 日记支持增 / 改 / 删 + 二次确认；日历点击日期进入当日编辑。<br>• **Insights 历史聚合图**：新增 `InsightsCharts.tsx`（recharts 懒加载），含 mood/energy/sleep 趋势图 + 症状频率条形图；时间范围 7/30/90/全部。<br>• **About 页**：新增 `/about` 路由，承载版本 / 隐私 / AI 引擎 / 数据存储 / 账号系统 / 技术栈 / 致谢 / 仓库链接，满足 §6.4.5 / §12.1 / §12.3 全部验收。<br>• **测试挂载修复**：`vitest.config.ts` 扩展 `include` + `setupFiles`，根目录 `npm test` 一键 50 用例全跑通。<br>• **CI 完善**：`.github/workflows/deploy.yml` 拆分 `ci` / `deploy` 两个 job；PR trigger；concurrency 自动取消；build artifact 复用。 |
+| v0.2.0 | 2026-07-28 | **GitHub Release 发布**：tag `v0.2.0` 推送 + Release 页面创建（https://github.com/ruisheng2266/lumi/releases/tag/v0.2.0）。CI 自动部署到 Cloudflare Pages，production deploy `e570f2e0` 成功，线上 https://lumi365.com 已更新。`package.json` 版本 `0.1.0` → `0.2.0`。 |
 
 ---
 

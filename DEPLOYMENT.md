@@ -27,7 +27,9 @@
 │  4. npm test (V1.5: validation/ 50 cases)                                      │
 │  5. npm run type-check (TypeScript)                            │
 │  6. npm run build (生成 dist/)                                 │
-│  7. cloudflare/pages-action@v1 (上传到 Cloudflare)             │
+│  7. cloudflare/wrangler-action@v3.15.0                         │
+│     → wrangler pages deploy ./dist --project-name=lumi        │
+│     （上传到 Cloudflare，使用 CLOUDFLARE_API_TOKEN 密钥）       │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          ▼
@@ -35,8 +37,8 @@
 │            Cloudflare Pages (全球 CDN)                        │
 │  • 项目：lumi                                                  │
 │  • 域名：lumi365.com (主) / lumi-6au.pages.dev (备用)                                    │
-│  • 构建命令：npm run build                                     │
-│  • 输出目录：dist                                               │
+│  • 部署模式：Direct Upload（2026-07-29 起，已断开 Git 集成）  │
+│  • 构建/上传均由 GitHub Actions 的 wrangler 完成（见上）        │
 │  • 自动 HTTPS                                                  │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -59,6 +61,8 @@
    - Node version: 20
 6. Save and Deploy
 ```
+
+> ✅ **双部署线已解决（2026-07-29）**：lumi 项目已改为 **Direct Upload**（断开 Git 集成），只保留 GitHub Actions 这一条部署线。此后 push 不再触发多余的 Cloudflare 托管构建，也不再出现 build token 报错。新建项目推荐直接用 **Option B（API 创建）** 并设为 Direct Upload，从源头避免双部署线。详见下方「双部署线」章节。
 
 **选项 B：通过 API（无需浏览器，本文档使用此方式）**
 
@@ -132,6 +136,42 @@ git push origin main
 # GitHub: 仓库 → Actions → Deploy workflow
 # Cloudflare: 仓库 → Settings → Builds
 ```
+
+## ⚠️ 双部署线与 Cloudflare 托管构建 token 失效
+
+> **状态：已解决（2026-07-29）**。lumi 项目已改为 **Direct Upload**，断开 Git 集成，冗余托管构建已关闭。下列内容保留作历史记录与新建项目参考。
+
+Lumi 的**推荐部署路径只有一条**：GitHub Actions（`.github/workflows/deploy.yml`）→ `cloudflare/wrangler-action` → `wrangler pages deploy ./dist --project-name=lumi`，使用仓库 Secrets `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`。
+
+但若 Cloudflare Pages 项目是用 Dashboard「Connect to Git」创建的，Cloudflare 会额外启用 **Git 集成托管构建（Managed Build / Workers Builds）**。此时每次 push 会触发**两条**部署：
+
+1. GitHub Actions 的 wrangler 部署（✅ 主路径，使用 API Token）
+2. Cloudflare 自己的托管构建（使用 Git 集成 token，独立于 `CLOUDFLARE_API_TOKEN`）
+
+### 症状
+Cloudflare 构建日志出现：
+```
+Failed: The build token selected for this build has been deleted or rolled and cannot be used for this build.
+Please update your build token in the Worker Builds settings and retry the build.
+```
+而 GitHub Actions 里的 **"Deploy to Cloudflare Pages" job 实际是绿色成功**的——线上站点由 wrangler 部署更新，托管构建的失败**不影响发布**。
+
+### 根因
+托管构建依赖的 Git 集成 build token 被删除或轮转（与 `CLOUDFLARE_API_TOKEN` 是两回事，后者只给 wrangler 用）。
+
+### 修复（二选一）
+
+**方案 A（✅ 已执行，2026-07-29）：改为 Direct Upload，仅保留 Actions 部署**
+1. Cloudflare Dashboard → Workers & Pages → `lumi` → Settings → Builds & deployments
+2. 找到 Build configuration / Git integration，断开 Git 连接或改为 **Direct Upload**
+3. 保存后，push 只走 GitHub Actions，不再有冗余托管构建与 token 报错
+> 上述步骤已实际完成，lumi 当前即为 Direct Upload 模式。
+
+**方案 B（不再需要）：保留托管构建，修复其 token**
+1. Cloudflare Dashboard → `lumi` → Settings → Builds & deployments → 重新授权 GitHub（或在账户级 Workers Builds 设置里更新 build token）
+2. 回到失败的构建 → Retry
+
+> 无论哪种，都请确认 GitHub Actions 里的 `CLOUDFLARE_API_TOKEN` 仍有效（本项目曾发生 token 泄露事故，建议每 90 天轮换，见下方「Token 轮换」）。
 
 ## 📦 构建产物
 
@@ -460,4 +500,4 @@ wrangler d1 execute lumi-db --remote --command "SELECT * FROM users"
 
 ---
 
-> 最后更新：2026-07-27（v1.4）
+> 最后更新：2026-07-29（v0.3.1；补充双部署线 / 托管构建 token 失效说明）

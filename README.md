@@ -45,11 +45,11 @@ Lumi V1.4 起支持 Google 账号登录。账号系统是**完全可选**的—�
 
 详细配置：参见 [DEPLOYMENT.md §OAuth](./DEPLOYMENT.md#oauth-配置google-登录) 和 [PRD §11.5](./docs/MVP-PRD.md)。
 
-## 🎨 主题切换（V1.4）
+## 🎨 主题切换（V1.4+）
 
-Lumi V1.4 支持浅色 / 深色模式：
+Lumi 支持浅色 / 深色 / 跟随系统三种模式：
 
-- 设置 → 主题（浅色 / 深色两选一）
+- 设置 → 主题（浅色 / 深色 / 跟随系统三选一）
 - 选择持久化到 IndexedDB
 - 颜色用 CSS 变量定义，切换无闪烁
 - dark class 加在 <html> 元素上
@@ -233,7 +233,7 @@ Lumi 部署在 **Cloudflare Pages**，主域名 **[lumi365.com](https://lumi365.
 | 版本 | 计划 | 状态 |
 | --- | --- | --- |
 | **V1** | 周期追踪 + 排卵预测 + 健康日记 + AI 洞察（本地） + 双语（zh-CN / en） | ✅ 已发布 |
-| **V1.4** | PWA（可安装到主屏、离线）+ 主题切换（浅/深）+ **用户系统（Google OAuth + Cloudflare D1）** | ✅ 已发布 |
+| **V1.4** | PWA（可安装到主屏、离线）+ 主题切换（浅/深/跟随系统）+ **用户系统（Google OAuth + Cloudflare D1）** | ✅ 已发布 |
 | **V1.5** | i18n 硬编码清理 + 编辑/删除月经与日记 UI + flow 录入 + Insights 历史聚合图 + "关于"页 + 测试脚本挂载修复 | 🔜 进行中 |
 | V2 | 备孕模式（BBT 曲线）+ 加密备份 + 导入历史 + i18n 扩展（ja/ko/zh-TW） | 📋 计划 |
 | V3 | 可选云同步（E2EE，用户自托管）+ 多端同步 | 💭 远期 |

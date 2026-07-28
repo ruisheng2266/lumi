@@ -109,11 +109,10 @@ common: {
         today: '今日提醒',
         anomaly: '异常提醒',
       },
-    },
-    template: {
-      regularity: {
-        good: {
-          title: '周期规律性良好',
+      template: {
+        regularity: {
+          good: {
+            title: '周期规律性良好',
           data: '平均 {avg} 天，波动 < 2 天',
           interpretation: '你的月经周期非常稳定，这是健康的信号。',
           suggestion: '继续保持规律作息，这对预测准确性很有帮助。',
@@ -184,6 +183,7 @@ common: {
           data: '距上次月经 {days} 天（平均 {expected} 天，已延后 {diff} 天）',
           interpretation: '周期延后可能与压力、体重变化、激素水平相关。如果你近期有性生活，延后也可能是怀孕的信号。',
           suggestion: '留意身体其他信号；如果延后超过 2 周或经常延后，可考虑就医。',
+        },
         },
       },
     },

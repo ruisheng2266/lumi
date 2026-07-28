@@ -17,7 +17,6 @@ import {
   type CyclePrediction,
 } from './predict';
 import type { DailyLog } from '../db/client';
-import { resources } from '../i18n/config';
 
 export type InsightCategory =
   | 'regularity'
@@ -224,9 +223,13 @@ function pmsPatternInsight(ctx: InsightContext): Insight | null {
   // 取最显著的 3 个
   const top3 = pmsSymptoms.slice(0, 3);
 
-  // 症状名本地化：有 t 时走 i18n（symptoms.*），无 t 时回落 zh-CN 资源，避免暴露原始 id（审计 #5）
-  const zhSymptoms = resources['zh-CN'].symptoms as Record<string, string>;
-  const symptomLabel = (s: string): string => (t ? t(`symptoms.${s}`) : (zhSymptoms[s] ?? s));
+  // 症状名本地化 fallback 映射（仅当 t 不可用时使用）
+  const symptomFallback: Record<string, string> = {
+    cramps: '😣 经痛', headache: '🤕 头痛', bloating: '🎈 腹胀', discharge: '💧 白带变化',
+    breast: '🌸 乳房胀痛', nausea: '😖 恶心', appetite: '🍫 食欲变化', fever: '🌡️ 发热',
+    sleepy: '😴 嗜睡', insomnia: '💤 失眠', acne: '🌺 痤疮', constipated: '💩 便秘', diarrhea: '🚽 腹泻',
+  };
+  const symptomLabel = (s: string): string => (t ? t(`symptoms.${s}`) : (symptomFallback[s] ?? s));
   const sep = t ? (t('common.days') === 'days' ? ', ' : '、') : '、';
   const top3Text = top3.map(symptomLabel).join(sep);
 

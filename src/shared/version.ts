@@ -10,4 +10,4 @@ declare const __APP_VERSION__: string;
 export const APP_VERSION: string = __APP_VERSION__;
 
 /** 最后更新日期（与版本发布对应），集中维护避免散落硬编码 */
-export const APP_LAST_UPDATED = '2026-07-28';
+export const APP_LAST_UPDATED = '2026-07-29';

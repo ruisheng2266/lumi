@@ -15,6 +15,6 @@ export const LOCALE_META: Record<SupportedLocale, { nativeName: string; englishN
 };
 
 export const resources = {
-  'zh-CN': zhCN,
-  en,
+  'zh-CN': { translation: zhCN },
+  en: { translation: en },
 } as const;

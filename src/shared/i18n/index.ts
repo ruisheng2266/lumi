@@ -33,9 +33,11 @@ export async function initI18n(locale?: SupportedLocale) {
       lng: locale ?? detectLocale(),
       fallbackLng: 'en',
       supportedLngs: [...SUPPORTED_LOCALES],
-      ns: ['common', 'nav', 'pages', 'phases', 'onboarding', 'today', 'log', 'mood', 'moodLabel', 'energyLabel', 'symptoms', 'insight', 'template', 'settings', 'account', 'overview', 'calendar', 'clear', 'logPage', 'periodEdit', 'logEdit', 'day', 'logList', 'confirm', 'flow', 'chart', 'about'],
-      defaultNS: 'common',
-      nsSeparator: '.',
+      // All resources live under 'translation' namespace (see config.ts).
+      // We do NOT use nsSeparator '.' so that dotted keys like
+      // 'insight.template.today.title' resolve as nested object paths
+      // within translation — not as "namespace.restOfKey".
+      defaultNS: 'translation',
       resources,
       interpolation: { escapeValue: false, prefix: '{', suffix: '}' },
       returnEmptyString: false,

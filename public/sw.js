@@ -1,5 +1,5 @@
 // Lumi Service Worker (PRD §11.5 隐私优先)
-const CACHE = 'lumi-v1';
+const CACHE = 'lumi-v2';
 const PRECACHE = ['/', '/today', '/calendar', '/log', '/insights', '/settings', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
@@ -21,10 +21,11 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // Pass through non-GET, OAuth, API calls
+  // Pass through non-GET, OAuth, API calls, Vite dev modules
   if (req.method !== 'GET') return;
   if (url.pathname.startsWith('/auth/')) return;
   if (url.pathname.startsWith('/api/')) return;
+  if (url.pathname.startsWith('/src/') || url.pathname.startsWith('/@')) return;
 
   // For navigation requests: network-first, fallback to cache
   if (req.mode === 'navigate') {

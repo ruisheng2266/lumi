@@ -80,11 +80,10 @@ common: {
         today: 'Daily tip',
         anomaly: 'Anomaly alerts',
       },
-    },
-    template: {
-      regularity: {
-        good: {
-          title: 'Cycle is highly regular',
+      template: {
+        regularity: {
+          good: {
+            title: 'Cycle is highly regular',
           data: 'Average {avg} days, variation < 2 days',
           interpretation: 'Your cycle has been very stable — a healthy sign.',
           suggestion: 'Keep up your consistent routine; it helps prediction accuracy.',
@@ -155,6 +154,7 @@ common: {
           data: '{days} days since last period (average {expected} days, {diff} days late)',
           interpretation: 'A late cycle can be linked to stress, weight changes, or hormonal shifts. If you\'ve been sexually active recently, it could also be an early sign of pregnancy.',
           suggestion: 'Watch for other body signals. If more than 2 weeks late or frequently delayed, consider seeing a doctor.',
+        },
         },
       },
     },

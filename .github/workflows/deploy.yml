@@ -1,12 +1,70 @@
-﻿name: Deploy to Cloudflare Pages
+name: CI
 
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
+# 自动取消同一 branch / PR 上尚未完成的运行
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-and-deploy:
+  # ───────────────────────────────────────────
+  #  CI：每次 push / PR 都跑（lint / type / test / build）
+  # ───────────────────────────────────────────
+  ci:
+    name: Lint / Type / Test / Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Unit tests (Vitest)
+        run: npm test
+        env:
+          CI: 'true'
+
+      - name: Production build
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      # 上传构建产物：deploy job 下载它；失败时也可手动下载诊断
+      - name: Upload build artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  # ───────────────────────────────────────────
+  #  Deploy：仅 main 分支直接 push 触发（PR 不部署）
+  # ───────────────────────────────────────────
+  deploy:
+    name: Deploy to Cloudflare Pages
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -16,32 +74,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      # 下载 ci job 产物，无需重新 install / build
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          name: dist-${{ github.sha }}
+          path: dist/
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests
-        run: npm test
-
-      - name: Type check
-        run: npm run type-check
-
-      - name: Build
-        run: npm run build
-        env:
-          NODE_ENV: production
-
-      # Deploy via wrangler-action which:
-      # - Auto-compiles TS Pages Functions
-      # - Picks up functions/ directory
-      # - Reads wrangler.toml for config (D1 binding, env vars)
-      # Secrets (GOOGLE_CLIENT_SECRET) are read from Cloudflare env vars
-      # at runtime, not from the workflow file.
+      # wrangler-action 自动处理：
+      #   - 编译 functions/ 下的 TS Pages Functions
+      #   - 读取 wrangler.toml（D1 binding + GOOGLE_CLIENT_ID 等）
+      #   - 部署 dist/ 到 Cloudflare Pages
+      # GOOGLE_CLIENT_SECRET 等敏感变量在 Cloudflare Dashboard 配置，
+      # 不出现在本 workflow 文件中。
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v2
         with:

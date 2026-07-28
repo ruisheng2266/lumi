@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useTranslation } from 'react-i18next';
 import { Download, Trash2, Info, LogIn, LogOut, Sun, Moon } from 'lucide-react';
@@ -79,12 +80,12 @@ export function Settings() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">{t('pages.settingsTitle')}</h1>
 
-      {/* 账号 */}
+      {/* Account (optional, V1.4) */}
       <section>
-        <CardTitle>账号</CardTitle>
+        <CardTitle>{t('account.title')}</CardTitle>
         <Card>
           {authLoading ? (
-            <p className="text-sm text-fog">加载中...</p>
+            <p className="text-sm text-fog">{t('common.loading')}</p>
           ) : user ? (
             <div className="flex items-center gap-3">
               {user.picture && (
@@ -95,21 +96,21 @@ export function Settings() {
                 <p className="text-xs text-fog truncate">{user.email}</p>
               </div>
               <Button variant="ghost" size="sm" leftIcon={<LogOut size={16} />} onClick={logout}>
-                登出
+                {t('account.logout')}
               </Button>
             </div>
           ) : (
             <Button variant="primary" fullWidth leftIcon={<LogIn size={18} />} onClick={login}>
-              用 Google 登录
+              {t('account.loginWithGoogle')}
             </Button>
           )}
           {user && (
-            <p className="mt-3 text-xs text-fog">登录后可保存偏好到云端；健康数据仍仅存储在本地。</p>
+            <p className="mt-3 text-xs text-fog">{t('account.syncHint')}</p>
           )}
         </Card>
       </section>
 
-      {/* 概况 */}
+      {/* Stats overview */}
       <section>
         <Card variant="flat">
           <div className="grid grid-cols-3 gap-4 text-center">
@@ -117,19 +118,23 @@ export function Settings() {
               <p className="text-2xl font-bold tabular-nums text-lavender-500">
                 {periodsCount ?? 0}
               </p>
-              <p className="text-xs text-fog mt-1">次月经记录</p>
+              <p className="text-xs text-fog mt-1">
+                {t('overview.periodUnit', { count: periodsCount ?? 0 })}
+              </p>
             </div>
             <div>
               <p className="text-2xl font-bold tabular-nums text-coral-500">
                 {logsCount ?? 0}
               </p>
-              <p className="text-xs text-fog mt-1">条健康日记</p>
+              <p className="text-xs text-fog mt-1">
+                {t('overview.logUnit', { count: logsCount ?? 0 })}
+              </p>
             </div>
             <div>
               <p className="text-2xl font-bold tabular-nums text-lavender-400">
                 {profile?.avgCycleLen ?? '—'}
               </p>
-              <p className="text-xs text-fog mt-1">天平均周期</p>
+              <p className="text-xs text-fog mt-1">{t('overview.avgCycleUnit')}</p>
             </div>
           </div>
         </Card>
@@ -215,12 +220,16 @@ export function Settings() {
         </Card>
       </section>
 
-      {/* 关于 */}
+      {/* About footer */}
       <section>
-        <Card variant="flat" className="text-center text-xs text-fog py-4 space-y-1">
-          <p>Lumi · {t('settings.version')} 0.1.0</p>
-          <p>本地优先 · 数据归你 · 永远免费</p>
-        </Card>
+        <Link
+          to="/about"
+          className="block rounded-2xl border border-lavender-100 bg-white text-center text-xs text-fog py-4 px-3 space-y-1 hover:bg-lavender-50 transition"
+        >
+          <p className="font-medium text-ink">Lumi · {t('settings.version')} 0.1.0</p>
+          <p>{t('overview.tagline')}</p>
+          <p className="text-lavender-500 mt-1">{t('about.title')} →</p>
+        </Link>
       </section>
 
       {/* 清空确认 Sheet */}
@@ -228,11 +237,15 @@ export function Settings() {
         <div className="space-y-4">
           <p className="text-sm text-ink leading-relaxed">{t('settings.clearConfirmDesc')}</p>
           <div className="rounded-lg bg-coral-50 p-3 text-sm text-coral-500">
-            ⚠️ 将被删除：
+            {t('clear.willDelete')}
             <ul className="list-disc list-inside mt-1 space-y-0.5">
-              <li>{periodsCount ?? 0} 次月经记录</li>
-              <li>{logsCount ?? 0} 条健康日记</li>
-              <li>个人档案与设置</li>
+              <li>
+                {t('overview.periodUnit', { count: periodsCount ?? 0 })}
+              </li>
+              <li>
+                {t('overview.logUnit', { count: logsCount ?? 0 })}
+              </li>
+              <li>{t('clear.profileAndSettings')}</li>
             </ul>
           </div>
           <div className="flex gap-3">

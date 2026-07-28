@@ -24,7 +24,7 @@
 │  1. Checkout code                                             │
 │  2. Setup Node 20 + npm cache                                 │
 │  3. npm ci (安装依赖)                                          │
-│  4. npm test (50 单元测试)                                      │
+│  4. npm test (V1.5: validation/ 50 cases)                                      │
 │  5. npm run type-check (TypeScript)                            │
 │  6. npm run build (生成 dist/)                                 │
 │  7. cloudflare/pages-action@v1 (上传到 Cloudflare)             │
@@ -143,36 +143,42 @@ dist/
 ├── assets/
 │   ├── index-xxx.css      ~18 kB    (gzip: ~4 kB)
 │   └── index-xxx.js       ~417 kB   (gzip: ~136 kB)
-├── _headers                          ← Cloudflare 安全头
+├── _headers                          ← Cloudflare 安全头（含 CSP V1.4）
 ├── _redirects                        ← SPA 路由 fallback
+├── manifest.webmanifest              ← PWA manifest（V1.4）
+├── sw.js                             ← Service Worker（V1.4）
 └── favicon.svg
 ```
 
 总大小：~140 KB gzip（首屏极快）
 
-## 🛡️ 安全头（`_headers`）
+## 🛡️ 安全头（`_headers`，V1.4）
 
-部署时 Cloudflare 自动应用以下头：
+部署时 Cloudflare 自动应用以下头（V1.4 实际值）：
 
 ```
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'none'; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://accounts.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://accounts.google.com https://www.googleapis.com https://openidconnect.googleapis.com; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self' https://accounts.google.com; frame-ancestors 'none'
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
-  Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=()
+  Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: require-corp
 
 /index.html
   Cache-Control: no-cache, no-store, must-revalidate
+
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
 ```
 
 关键说明：
-- **`connect-src 'none'`** 是隐私承诺的核心 — 物理禁止任何网络请求
-- **`frame-ancestors 'none'`** 防点击劫持
-- **`Cross-Origin-Embedder-Policy: require-corp`** 启用跨源隔离（SharedArrayBuffer 等高级 API 前提）
+- **`connect-src` 严格限制 + Google 域白名单**（V1.4）：`accounts.google.com` / `www.googleapis.com` / `openidconnect.googleapis.com` 仅供 OAuth 流程；**健康数据相关请求保持零网络**。
+- **`frame-ancestors 'none'`** 防点击劫持。
+- **`Cross-Origin-Embedder-Policy: require-corp`** 启用跨源隔离（SharedArrayBuffer 等高级 API 前提）。
+- **`/sw.js` 不缓存** 确保 Service Worker 立即生效。
 
 ## 🔀 SPA 路由（`_redirects`）
 
@@ -195,15 +201,24 @@ React Router 处理客户端路由（`/today`、`/calendar` 等非根路径）�
 - 同一份 dist/ 产物可分发到阿里云 OSS / 腾讯云 COS
 ```
 
-## ⚙️ 环境变量
+## ⚙️ 环境变量（V1.4）
 
-V1 不需要环境变量（纯前端，无后端）。如果未来 V2+ 需要：
+V1.4 起，前端会用到以下变量（用于账号系统 OAuth）：
 
+- **公开变量**（写入 `wrangler.toml` 的 `[vars]`，可提交）：
+  - `PUBLIC_URL`：站点主域名（如 `https://lumi365.com`）
+  - `GOOGLE_CLIENT_ID`：Google OAuth Web Client ID
+- **私密变量**（通过 Dashboard 或 `wrangler pages secret put` 注入）：
+  - `GOOGLE_CLIENT_SECRET`：Google OAuth Web Client Secret
+
+```bash
+# 通过 Dashboard 注入：
+# Cloudflare Dashboard → lumi → Settings → Environment variables → Production
+# 添加 GOOGLE_CLIENT_SECRET = <your-secret>
+
+# 或通过 wrangler CLI：
+wrangler pages secret put GOOGLE_CLIENT_SECRET --project-name=lumi
 ```
-Cloudflare Dashboard → lumi → Settings → Environment variables
-```
-
-或在 `.github/workflows/deploy.yml` 中通过 `env:` 注入。
 
 ## 🐛 故障排查
 
@@ -222,7 +237,9 @@ npm run build
 3. 验证 `_redirects` 配置存在
 
 ### CSP 报错
-如果有第三方资源被 CSP 拦截，需调整 `public/_headers` 中的对应指令。例如添加 `script-src 'self' 'unsafe-eval'`，但要谨慎 — 这会降低安全性。
+如果有第三方资源被 CSP 拦截，需调整 public/_headers 中的对应指令。
+
+**V1.4 CSP 已白名单**：仅 https://accounts.google.com / https://*.googleapis.com（含 openidconnect.googleapis.com）。其他任何第三方域都会触发 CSP 报错，需要明确评估是否纳入白名单——谨慎行事，这会降低安全性。
 
 ### 性能问题
 - Lighthouse 在 Cloudflare 边缘节点跑分通常 ≥ 95
@@ -274,17 +291,27 @@ Lumi V1 **不使用任何第三方分析**（隐私承诺）。可选自托管�
 
 详细过程：见 git history `615f073`（泄露事故）→ `fd38d70`（修复）
 
-## 📝 部署检查清单（DoD）
+## 📝 部署检查清单（DoD，V1.4）
 
 新部署前确认：
 
-- [ ] 所有测试通过（`npm test` 50/50）
+- [ ] 所有测试通过：`cd validation && npm test`（50/50）
 - [ ] 类型检查通过（`npm run type-check`）
 - [ ] 构建成功（`npm run build`）
 - [ ] 本地预览正常（`npm run preview`）
-- [ ] CSP 头正确（`curl -I https://lumi365.com`）
+- [ ] CSP 头正确（`curl -I https://lumi365.com`，应见 V1.4 实际值）
 - [ ] 404 fallback 正常（访问 `/today` 不报错）
-- [ ] 数据导入导出正常（Onboarding → 记录 → Settings → 导出 JSON）
+- [ ] PWA manifest 加载（浏览器 DevTools → Application → Manifest）
+- [ ] Service Worker 注册（DevTools → Application → Service Workers）
+- [ ] 主题切换工作（Settings → 深色 → 全站颜色变量切换）
+- [ ] 数据导出 / 清空正常（Onboarding → 记录 → Settings → 导出 JSON）
+- [ ] **V1.4 账号系统**（如启用）：
+  - [ ] `wrangler.toml` 中 `PUBLIC_URL` / `GOOGLE_CLIENT_ID` 已设
+  - [ ] Cloudflare Dashboard 中 `GOOGLE_CLIENT_SECRET` 已注入
+  - [ ] D1 数据库 `lumi-db` 已创建并绑定
+  - [ ] Pages Functions `/auth/login|callback|logout|me` 部署成功
+  - [ ] Google Cloud Console 中 OAuth 重定向 URI 已配置
+  - [ ] 测试登录流程（Settings → 用 Google 登录 → 跳转 → 头像显示）
 
 ---
 
@@ -379,10 +406,14 @@ wrangler pages secret put GOOGLE_CLIENT_SECRET --project-name=lumi
 ```
 
 ### 步骤 6：更新 CSP
-在 public/_headers 中必须允许 Google 域（参考本项目已更新的 _headers）：
-- script-src 加 https://accounts.google.com
-- connect-src 加 accounts.google.com 和 googleapis.com
-- form-action 加 https://accounts.google.com
+
+本项目的 `public/_headers` 已包含 V1.4 的完整 CSP（参见上文 §安全头）。如果你 fork 后自定义过 `_headers`，需要确保：
+
+- `script-src` 包含 `https://accounts.google.com`
+- `connect-src` 包含 `https://accounts.google.com` 和 `https://*.googleapis.com`
+- `form-action` 包含 `https://accounts.google.com`
+
+其余指令（`default-src`、`frame-ancestors`、`X-Frame-Options` 等）保持默认。
 
 ### 步骤 7：测试
 ```
@@ -418,7 +449,7 @@ wrangler d1 execute lumi-db --remote --command "SELECT * FROM users"
 - Android Chrome → 菜单 → 添加到主屏
 
 文件：
-- public/manifest.webmanifest
+- public/manifest.webmanifest (名称、图标、shortcuts)
 - public/sw.js（service worker，network-first + cache fallback）
 ## 📚 相关资源
 

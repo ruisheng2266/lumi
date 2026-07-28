@@ -7,6 +7,7 @@ import { Calendar } from './pages/Calendar';
 import { Log } from './pages/Log';
 import { Insights } from './pages/Insights';
 import { Settings } from './pages/Settings';
+import { About } from './pages/About';
 import { Onboarding } from './pages/Onboarding';
 
 export default function App() {
@@ -27,6 +28,7 @@ export default function App() {
         <Route path="/insights" element={<Insights />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
+      <Route path="/about" element={<About />} />
       <Route path="*" element={<Navigate to="/today" replace />} />
     </Routes>
   );

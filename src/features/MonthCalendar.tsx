@@ -20,6 +20,7 @@ import {
 
 } from 'date-fns';
 import { zhCN, enUS } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
 import i18next from '../shared/i18n';
 import { cn } from '../shared/lib/cn';
 import { IconButton } from '../shared/ui/IconButton';
@@ -42,6 +43,7 @@ const PHASE_STYLE: Record<Phase, { bg: string; text: string; emoji: string }> = 
 };
 
 export function MonthCalendar({ periods, userAvgCycle, userAvgPeriod, onDayClick }: MonthCalendarProps) {
+  const { t } = useTranslation();
   const today = new Date();
   const [viewMonth, setViewMonth] = useState(startOfMonth(today));
   const lng = (i18next.language || 'zh-CN') as keyof typeof localeMap;
@@ -100,9 +102,7 @@ export function MonthCalendar({ periods, userAvgCycle, userAvgPeriod, onDayClick
     }
   }
 
-  const weekDayLabels = locale.localize
-    ? Array.from({ length: 7 }, (_, i) => format(startOfWeek(viewMonth, { weekStartsOn: (1 + i) as 0 | 1 | 2 | 3 | 4 | 5 | 6 }), 'EEEEEE', { locale }))
-    : ['一', '二', '三', '四', '五', '六', '日'];
+  const weekDayLabels = t('calendar.weekdaysShort', { returnObjects: true }) as string[];
 
   return (
     <div className="space-y-3">
@@ -115,7 +115,7 @@ export function MonthCalendar({ periods, userAvgCycle, userAvgPeriod, onDayClick
           onClick={() => setViewMonth(subMonths(viewMonth, 1))}
         />
         <h2 className="text-base font-semibold tabular-nums">
-          {format(viewMonth, lng === 'en' ? 'MMMM yyyy' : 'yyyy 年 M 月', { locale })}
+          {format(viewMonth, 'MMMM yyyy', { locale })}
         </h2>
         <IconButton
           icon={<ChevronRight size={18} />}
@@ -187,15 +187,15 @@ export function MonthCalendar({ periods, userAvgCycle, userAvgPeriod, onDayClick
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-fog pt-2">
         <div className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 rounded bg-coral-300"></span>
-          {lng === 'en' ? 'Period' : '经期'}
+          {t('calendar.legendPeriod')}
         </div>
         <div className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 rounded bg-coral-50 ring-1 ring-coral-200"></span>
-          {lng === 'en' ? 'Fertile window' : '易孕期'}
+          {t('calendar.legendFertile')}
         </div>
         <div className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 rounded ring-2 ring-lavender-400"></span>
-          {lng === 'en' ? 'Today' : '今天'}
+          {t('calendar.legendToday')}
         </div>
       </div>
     </div>

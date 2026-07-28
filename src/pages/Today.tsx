@@ -1,19 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useTranslation } from 'react-i18next';
-import { Droplet, Sparkles, Plus } from 'lucide-react';
+import { Droplet, Sparkles, Plus, Pencil } from 'lucide-react';
 import { Card, CardTitle } from '../shared/ui/Card';
 import { Button } from '../shared/ui/Button';
-import { periodRepo, settingsRepo, userProfileRepo } from '../shared/db/client';
+import { periodRepo, settingsRepo, userProfileRepo, type Period } from '../shared/db/client';
 import { predictCycle, type CyclePrediction, type PeriodRecord } from '../shared/lib/predict';
 import { today, fmtShort, daysBetween } from '../shared/lib/date';
 import { useNavigate } from 'react-router-dom';
 import { LogSheet } from '../features/LogSheet';
+import { PeriodEditSheet } from '../features/PeriodEditSheet';
 
 export function Today() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [logOpen, setLogOpen] = useState(false);
+  const [periodEditOpen, setPeriodEditOpen] = useState(false);
+  const [periodToEdit, setPeriodToEdit] = useState<Period | null>(null);
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
   const [displayName, setDisplayName] = useState<string>('');
 
@@ -125,6 +128,43 @@ export function Today() {
         </Card>
       )}
 
+      {/* 最近月经历史（最多 3 条） */}
+      {periods.length > 0 && (
+        <Card>
+          <div className="flex items-center justify-between mb-2">
+            <CardTitle>{t('phases.menstrual')}</CardTitle>
+            <button
+              type="button"
+              onClick={() => setPeriodEditOpen(true)}
+              className="text-xs text-lavender-500 hover:text-lavender-600 inline-flex items-center gap-1"
+            >
+              <Pencil size={12} />
+              {t('common.edit')}
+            </button>
+          </div>
+          <ul className="space-y-1">
+            {periods.slice(0, 3).map((p) => (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  onClick={() => { setPeriodToEdit(p); setPeriodEditOpen(true); }}
+                  className="w-full text-left text-sm rounded-md px-3 py-2 hover:bg-lavender-50 transition flex items-center gap-2 tabular-nums"
+                >
+                  <Droplet size={12} className="text-coral-500 shrink-0" />
+                  <span className="text-ink">{p.startDate}</span>
+                  {p.endDate && (
+                    <span className="text-fog">→ {p.endDate}</span>
+                  )}
+                  {!p.endDate && (
+                    <span className="text-xs text-coral-500 ml-1">●</span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       {/* 快速操作 */}
       <div className="grid grid-cols-2 gap-3">
         {!isOnPeriod ? (
@@ -174,6 +214,11 @@ export function Today() {
       )}
 
       <LogSheet open={logOpen} onClose={() => setLogOpen(false)} />
+      <PeriodEditSheet
+        open={periodEditOpen}
+        onClose={() => { setPeriodEditOpen(false); setPeriodToEdit(null); }}
+        period={periodToEdit ?? undefined}
+      />
     </div>
   );
 }

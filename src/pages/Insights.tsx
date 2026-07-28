@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Sparkles } from 'lucide-react';
 import { periodRepo, dailyLogRepo, userProfileRepo } from '../shared/db/client';
 import { buildInsights, type Insight } from '../shared/lib/insights';
+import { Suspense, lazy } from 'react';
 import { Card } from '../shared/ui/Card';
+const InsightsCharts = lazy(() => import('../features/InsightsCharts').then((m) => ({ default: m.InsightsCharts })));
 import { today } from '../shared/lib/date';
 
 export function Insights() {
@@ -22,6 +24,7 @@ export function Insights() {
     today(),
     profile?.avgCycleLen,
     profile?.avgPeriodLen,
+    t,
   );
 
   if (insights.length === 0) {
@@ -47,7 +50,7 @@ export function Insights() {
       </div>
 
       <p className="text-xs text-fog">
-        全部基于本地数据 · 不会上传任何信息
+        {t('insight.privacyFooter')}
       </p>
 
       <div className="space-y-3">
@@ -56,8 +59,13 @@ export function Insights() {
         ))}
       </div>
 
+      {/* 趋势回顾：心情 / 精力 / 睡眠 + 症状频率（PRD §6.3.3） */}
+      <Suspense fallback={<div className="h-40 rounded-2xl bg-lavender-50 animate-pulse" />}>
+        <InsightsCharts logs={logs} />
+      </Suspense>
+
       <Card variant="flat" className="text-xs text-fog text-center py-3">
-        💡 洞察基于 {periods.length} 次月经 · {logs.length} 条日志
+        {t('insight.basedOn', { periods: periods.length, logs: logs.length })}
       </Card>
     </div>
   );

@@ -13,6 +13,13 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
+    setupFiles: [
+      './src/test/setup.ts',                  // root: fake-indexeddb polyfill
+      './validation/src/setup.ts',            // validation: same polyfill
+    ],
+    include: [
+      'src/**/*.{test,spec}.{ts,tsx}',
+      'validation/src/**/*.{test,spec}.{ts,tsx}',
+    ],
   },
 });

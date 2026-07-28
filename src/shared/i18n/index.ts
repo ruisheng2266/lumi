@@ -1,4 +1,4 @@
-﻿/**
+/**
  * src/shared/i18n/index.ts
  * i18next 配置（PRD §6.5）
  */
@@ -33,7 +33,7 @@ export async function initI18n(locale?: SupportedLocale) {
       lng: locale ?? detectLocale(),
       fallbackLng: 'en',
       supportedLngs: [...SUPPORTED_LOCALES],
-      ns: ['common', 'nav', 'pages', 'phases', 'onboarding', 'today', 'log', 'mood', 'moodLabel', 'energyLabel', 'symptoms', 'insight', 'settings'],
+      ns: ['common', 'nav', 'pages', 'phases', 'onboarding', 'today', 'log', 'mood', 'moodLabel', 'energyLabel', 'symptoms', 'insight', 'template', 'settings', 'account', 'overview', 'calendar', 'clear', 'logPage', 'periodEdit', 'logEdit', 'day', 'logList', 'confirm', 'flow', 'chart', 'about'],
       defaultNS: 'common',
       nsSeparator: '.',
       resources,

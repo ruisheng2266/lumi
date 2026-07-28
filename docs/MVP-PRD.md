@@ -1,8 +1,8 @@
-# Lumi — MVP 需求文档（V1）
+# Lumi — MVP 需求文档（V1.4）
 
-> 版本：v1.5  
-> 日期：2026-07-24  
-> 状态：待评审
+> 版本：v1.6  
+> 日期：2026-07-28  
+> 状态：V1.4 增量（账号系统 / PWA / 主题）已落地，文档对齐；剩余 V1.x 收尾项见 §13 / §15.3
 
 ---
 
@@ -12,9 +12,9 @@
 | --- | --- |
 | 产品名称 | Lumi（暂沿用前 MVP 命名） |
 | 产品定位 | 本地优先的女性健康追踪应用 |
-| 文档版本 | v1.0 |
-| 目标版本 | Lumi V1（纯本地版） |
-| 范围 | 周期追踪、排卵预测、健康日记、AI 健康建议 |
+| 文档版本 | v1.6 |
+| 目标版本 | Lumi V1.4（本地优先 + 可选 Google 账号系统） |
+| 范围 | 周期追踪、排卵预测、健康日记、AI 健康建议、用户系统（V1.4 新增） |
 
 ---
 
@@ -101,10 +101,11 @@ Lumi 是一个**纯本地运行**的网页/PWA 应用：
 | 隐私政策 | 离线友好的本地 README + 应用内"关于"页 | P0 |
 | 国际化（i18n） | 简体中文 + English 双语；可运行时切换；预留扩展接口 | P0 |
 | 主题切换 | 浅色 / 深色 / 跟随系统 | P0 |
+| **用户系统（V1.4 新增）** | 可选 Google OAuth 登录；偏好（语言/主题/入职状态）写入 Cloudflare D1；HTTP-only Cookie 会话；CSP 仅对 Google 域放行。**健康数据始终仅存本地 IndexedDB**。详见 §11.5 | P1 |
 
 ### 5.2 V1 Out of Scope（不做）
 
-- ❌ 云同步、账号系统、跨设备同步
+- ❌ 云同步、跨设备同步（健康数据持续仅存本地；账号系统已在 V1.4 纳入，详见 §11.5）
 - ❌ 备孕模式（BBT 曲线、同房记录）
 - ❌ 孕期模式
 - ❌ 围绝经期专属模式
@@ -595,7 +596,8 @@ Settings → 数据管理 → 导出
 ## 9. 非功能需求
 
 ### 9.1 隐私 & 安全
-- ✅ **零网络请求**：应用初始化后所有功能离线可用；
+- ✅ **零网络请求**（V1）：应用初始化后所有功能离线可用；
+- ✅ **V1.4 起**：账号系统走 Google OAuth（前端 → accounts.google.com / googleapis.com），**健康数据相关请求保持零网络**；
 - ✅ **零追踪**：无 GA / Sentry / 任何分析 SDK；
 - ✅ **数据导出**：支持 JSON 导出，格式自描述；
 - ✅ **数据删除**：Settings 一键"永久删除所有数据"，二次确认；
@@ -622,7 +624,7 @@ Settings → 数据管理 → 导出
 - ✅ 移动端断点 375 / 768 / 1024。
 
 ### 9.5 国际化（i18n）
-- ✅ **双语支持**：V1 必须 100% 完成 zh-CN 和 en 翻译，无遗漏硬编码文案；
+- ✅ **双语支持**：V1 必须 100% 完成 zh-CN 和 en 翻译，无遗漏硬编码文案（V1.5 收尾中）；
 - ✅ **运行时切换**：切换语言不刷新页面，所有 UI 即时更新；
 - ✅ **locale 感知**：日期、数字、单位按当前 locale 格式化；
 - ✅ **数据无关**：数据 schema 与语言无关，切换语言不丢数据；
@@ -731,20 +733,24 @@ Settings → 数据管理 → 导出
 
 ```
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'none'; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://accounts.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://accounts.google.com https://www.googleapis.com https://openidconnect.googleapis.com; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self' https://accounts.google.com; frame-ancestors 'none'
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
-  Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=()
+  Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
 ```
 
 | 头 | 作用 |
 | --- | --- |
-| `Content-Security-Policy: connect-src 'none'` | **物理禁止**任何 fetch/XHR/WebSocket，固化"零网络"承诺 |
+| `Content-Security-Policy`（V1.4） | 健康数据相关请求被 `connect-src` 严格限制；仅对 Google OAuth / Google API 域放行，用于账号系统（§11.5）。其余默认 `'self`' |
 | `X-Frame-Options: DENY` | 防止被 iframe 嵌入点击劫持 |
 | `Referrer-Policy: no-referrer` | 不发送来源信息 |
 | `Permissions-Policy` | 禁用定位、相机、麦克风等权限 |
+| `Strict-Transport-Security` | 强制 HTTPS |
+| `Cross-Origin-Opener-Policy` / `Cross-Origin-Embedder-Policy` | 跨源隔离，配合 PWA 安全基线 |
 
 #### 11.4.3 SPA 路由（`_redirects`）
 
@@ -896,14 +902,15 @@ CREATE TABLE sessions (
 ## 12. 验收标准（Definition of Done）
 
 ### 12.1 功能完整
-- [ ] 入职引导可走完 4 步并写入设置；
+- [ ] 入职引导可走完 3 步（语言/昵称 → 最近月经 → 平均周期+经期）并写入设置；
 - [ ] 可记录、编辑、删除月经事件；
 - [ ] 可记录、编辑、删除每日日志；
 - [ ] 日历视图显示过去、当前、预测的周期状态；
 - [ ] Today 页显示当前阶段 + 距下次月经天数；
 - [ ] Insights 页根据数据量返回相应洞察；
 - [ ] Settings 支持导出 JSON 和清空数据；
-- [ ] **i18n**：可在 Settings 切换 zh-CN / en，无需刷新；所有 UI 文案 100% 翻译完毕；首次启动自动检测浏览器语言。
+- [ ] **i18n**：可在 Settings 切换 zh-CN / en，无需刷新；首次启动自动检测浏览器语言；UI 文案 100% 翻译完毕（V1.5 收尾，见 §13）。
+- [ ] **用户系统（V1.4）**：可选 Google OAuth 登录；HTTP-only Cookie 会话；偏好（语言/主题/入职）持久化；登出后本地 IndexedDB 数据保留。**健康数据全程不上传**。
 
 ### 12.2 质量
 - [ ] 关键算法（`predict.ts`, `insights.ts`）有单元测试；
@@ -912,22 +919,22 @@ CREATE TABLE sessions (
 - [ ] 控制台无 warning（React key、a11y 等）。
 
 ### 12.3 隐私
-- [ ] DevTools Network 面板验证：操作全程零网络请求；
+- [ ] DevTools Network 面板验证：健康数据相关操作全程零网络请求（V1.4 起，仅 Google OAuth 流程会发起网络请求，见 §11.5）；
 - [ ] About 页明确说明数据存储位置和清理方式；
-- [ ] 导出 JSON 可在另一台设备导入恢复。
+- [ ] 导出 JSON 顶层含 schemaVersion；导入能力留待 V2（v1.2 已决定 V1 不做导入）。
 
 ---
 
 ## 13. 路线图
 
-| 版本 | 时间 | 关键功能 |
-| --- | --- | --- |
-| **V1（MVP）** | 当前 | 周期追踪 + 排卵预测 + 健康日记 + AI 洞察（本地） + **i18n（zh-CN/en）** |
-| V1.1 | V1 后 2 周 | PWA（可安装到主屏、离线） + 主题切换 + i18n 完善（en 文案 native 校对） |
-| V2 | V1 后 6 周 | 备孕模式（BBT 曲线）+ 加密备份 + 导入历史数据 + **i18n 扩展（ja/ko/zh-TW）** |
-| V2 | V1 后 6 周 | 备孕模式（BBT 曲线）+ 加密备份 + 导入历史数据 |
-| V3 | V2 后 8 周 | 可选云同步（E2EE，用户自托管） + 多端同步 |
-| V4 | 未来 | 孕期模式 + 围绝经期模式 + 医生分享 |
+| 版本 | 时间 | 关键功能 | 状态 |
+| --- | --- | --- | --- |
+| **V1（MVP）** | 2026-07 | 周期追踪 + 排卵预测 + 健康日记 + AI 洞察（本地） + i18n（zh-CN/en） + 数据导出/清空 | ✅ 已发布 |
+| **V1.4** | 2026-07 | PWA（manifest + sw.js + 可安装） + 主题切换（浅/深） + **用户系统（Google OAuth + Cloudflare D1 + Pages Functions）** | ✅ 已发布 |
+| V1.5 | V1.4 后 2 周 | i18n 硬编码清理（Settings / Insights / Calendar / LogSheet） + 编辑/删除月经事件 UI + 编辑/删除日记 UI + flow 录入 + Insights 历史聚合图 + "关于"页 + 测试脚本挂载修复 | 🔜 进行中 |
+| V2 | V1.5 后 4 周 | 备孕模式（BBT 曲线） + 加密备份 + 导入历史数据 + i18n 扩展（ja/ko/zh-TW） | 📋 计划 |
+| V3 | V2 后 8 周 | 可选云同步（E2EE，用户自托管） + 多端同步 | 💭 远期 |
+| V4 | 未来 | 孕期模式 + 围绝经期模式 + 医生分享 | 💭 远期 |
 
 ---
 
@@ -971,6 +978,9 @@ CREATE TABLE sessions (
 | v1.1 | 2026-07-24 | 新增 §6.5 国际化（i18n）：V1 支持 zh-CN + en 双语，预留扩展接口；更新 §5 范围、§7.3 设置项、§8.1 入职流程、§9.5 非功能需求、§11.1 依赖、§12.1 验收、§13 路线图 |
 | v1.2 | 2026-07-24 | 评审通过：移除 V1 导入功能；主题升 P0；入职从 5 步压成 3 步（新增平均经期长度）；周期范围 21~45；移除 BBT 字段；新增 §7.4 user_profile 表 + §7.5 数据库迁移规范；增加测试覆盖率目标和 recharts / testing-library 依赖 |
 | v1.3 | 2026-07-24 | 新增 §11.4 部署架构：确认 Cloudflare Pages 为主部署平台；定义 CSP（connect-src 'none'）/ _headers / _redirects / 缓存策略 / GitHub Action CI；明确隐私边界 |
+| v1.4 | 2026-07-26 | **实施增量**：新增 §11.5 用户系统（Google OAuth + Cloudflare D1 + Pages Functions /auth/login|callback|logout|me），Settings 页加入"账号"卡片，Cloudflare Wrangler 部署配置（D1 binding + GOOGLE_CLIENT_ID vars）。**健康数据继续仅存 IndexedDB**，账号系统仅承载偏好与身份。 |
+| v1.5 | 2026-07-27 | PWA 与主题切换提前到 V1.4 同期发布：public/manifest.webmanifest + public/sw.js + public/_headers（HSTS / Permissions-Policy / COOP / COEP）+ useTheme 浅/深切换 + CSS 变量重定义（globals.css）。 |
+| v1.6 | 2026-07-28 | 文档对齐实际实现：§1 文档版本/目标版本/范围；§5.1 新增"用户系统"行；§5.2 移除"账号系统"（已纳入 §11.5）；§11.4.2 CSP 示例同步为 V1.4 实际值（含 Google 域白名单与 COOP/COEP）；§13 路线图标注 V1 / V1.4 已发布、V1.5 收尾项。 |
 
 ---
 

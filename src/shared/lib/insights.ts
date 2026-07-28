@@ -1,6 +1,9 @@
 /**
  * src/shared/lib/insights.ts
  * AI 洞察引擎（PRD §6.4）—— 纯本地规则引擎，零网络请求
+ *
+ * 支持可选的 `translate` 函数注入（来自 i18next），传入后所有 UI 文案走 i18n key。
+ * 不传 `translate` 时回落到中文硬编码（保持 validation/ 单测兼容）。
  */
 
 import { differenceInDays, parseISO, startOfDay, format } from 'date-fns';
@@ -25,6 +28,13 @@ export type InsightCategory =
 
 export type InsightSeverity = 'info' | 'gentle' | 'important';
 
+/**
+ * i18n 翻译函数（i18next.t 的最小子集）
+ * - 传入时所有 UI 文案走 i18n key
+ * - 不传时回落到中文硬编码（仅用于单元测试）
+ */
+export type TranslateFn = (key: string, params?: Record<string, unknown>) => string;
+
 export interface Insight {
   id: string;
   category: InsightCategory;
@@ -43,6 +53,8 @@ interface InsightContext {
   today: Date;
   userAvgCycle?: number;
   userAvgPeriod?: number;
+  /** Optional i18n translator; if absent, fallback to Chinese strings */
+  t?: TranslateFn;
 }
 
 /**
@@ -51,7 +63,7 @@ interface InsightContext {
 export function generateInsights(ctx: InsightContext): Insight[] {
   const insights: Insight[] = [];
 
-  const r1 = cycleRegularityInsight(ctx.periods);
+  const r1 = cycleRegularityInsight(ctx.periods, ctx.t);
   if (r1) insights.push(r1);
 
   const r2 = pmsPatternInsight(ctx);
@@ -60,7 +72,7 @@ export function generateInsights(ctx: InsightContext): Insight[] {
   const r3 = energyPhaseInsight(ctx);
   if (r3) insights.push(r3);
 
-  const r4 = sleepMoodInsight(ctx.logs);
+  const r4 = sleepMoodInsight(ctx.logs, ctx.t);
   if (r4) insights.push(r4);
 
   const r5 = todayTipInsight(ctx);
@@ -81,11 +93,14 @@ function severityRank(s: InsightSeverity): number {
 /**
  * 1. 周期规律性洞察
  */
-function cycleRegularityInsight(periods: PeriodRecord[]): Insight | null {
+function cycleRegularityInsight(periods: PeriodRecord[], t?: TranslateFn): Insight | null {
   if (periods.length < 2) return null;
 
   const regularity = cycleRegularity(periods);
   const avg = avgCycleLen(periods);
+
+  const tr = (key: string, params?: Record<string, unknown>) =>
+    t ? t(`insight.template.regularity.${key}`, params) : '';
 
   if (regularity === 'good') {
     return {
@@ -93,10 +108,10 @@ function cycleRegularityInsight(periods: PeriodRecord[]): Insight | null {
       category: 'regularity',
       severity: 'info',
       emoji: '✨',
-      title: '周期规律性良好',
-      data: `平均 ${avg} 天，波动 < 2 天`,
-      interpretation: '你的月经周期非常稳定，这是健康的信号。',
-      suggestion: '继续保持规律作息，这对预测准确性很有帮助。',
+      title: t ? tr('good.title') : '周期规律性良好',
+      data: t ? tr('good.data', { avg }) : `平均 ${avg} 天，波动 < 2 天`,
+      interpretation: t ? tr('good.interpretation') : '你的月经周期非常稳定，这是健康的信号。',
+      suggestion: t ? tr('good.suggestion') : '继续保持规律作息，这对预测准确性很有帮助。',
     };
   }
 
@@ -106,10 +121,10 @@ function cycleRegularityInsight(periods: PeriodRecord[]): Insight | null {
       category: 'regularity',
       severity: 'info',
       emoji: '🌿',
-      title: '周期波动在可接受范围',
-      data: `平均 ${avg} 天，波动 2~4 天`,
-      interpretation: '多数女性的周期都会有小幅波动，这很正常。',
-      suggestion: '留意波动规律，比如是否与季节、压力或旅行相关。',
+      title: t ? tr('ok.title') : '周期波动在可接受范围',
+      data: t ? tr('ok.data', { avg }) : `平均 ${avg} 天，波动 2~4 天`,
+      interpretation: t ? tr('ok.interpretation') : '多数女性的周期都会有小幅波动，这很正常。',
+      suggestion: t ? tr('ok.suggestion') : '留意波动规律，比如是否与季节、压力或旅行相关。',
     };
   }
 
@@ -119,10 +134,10 @@ function cycleRegularityInsight(periods: PeriodRecord[]): Insight | null {
       category: 'regularity',
       severity: 'gentle',
       emoji: '🍃',
-      title: '近期周期波动较大',
-      data: `波动 > 4 天`,
-      interpretation: '周期不稳定可能与压力、作息、饮食变化有关，也可能反映激素波动。',
-      suggestion: '建议记录睡眠和情绪，这有助于发现规律；如果持续不规律，可考虑就医。',
+      title: t ? tr('irregular.title') : '近期周期波动较大',
+      data: t ? tr('irregular.data') : '波动 > 4 天',
+      interpretation: t ? tr('irregular.interpretation') : '周期不稳定可能与压力、作息、饮食变化有关，也可能反映激素波动。',
+      suggestion: t ? tr('irregular.suggestion') : '建议记录睡眠和情绪，这有助于发现规律；如果持续不规律，可考虑就医。',
     };
   }
 
@@ -135,7 +150,7 @@ function cycleRegularityInsight(periods: PeriodRecord[]): Insight | null {
  * 比较"经前 7 天"与"其他时间"的症状频率
  */
 function pmsPatternInsight(ctx: InsightContext): Insight | null {
-  const { periods, logs } = ctx;
+  const { periods, logs, t } = ctx;
   if (periods.length < 2 || logs.length < 6) return null;
 
   // 对每个 period，找出"经前 7 天"和"卵泡期"（经期后 ~14 天）的日志
@@ -194,15 +209,23 @@ function pmsPatternInsight(ctx: InsightContext): Insight | null {
 
   // 取最显著的 3 个
   const top3 = pmsSymptoms.slice(0, 3);
+  // PMS 症状翻译需要症状 label (i18n)，暂用症状 id；en 文案可后续单独加映射
+  const top3Labels = top3;
+
+  const tr = (key: string, params?: Record<string, unknown>) =>
+    t ? t(`insight.template.pms.${key}`, params) : '';
+
   return {
     id: 'pms-pattern',
     category: 'pms',
     severity: 'gentle',
     emoji: '🌸',
-    title: '发现 PMS 模式',
-    data: `经前 7 天最常出现：${top3.join('、')}`,
-    interpretation: '这些症状在经前期明显更频繁，可能是经前综合征的表现。',
-    suggestion: '记下出现的时间和强度，未来可以提前准备（如备好止痛药、调整日程）。',
+    title: t ? tr('title') : '发现 PMS 模式',
+    data: t
+      ? tr('data', { top3: top3Labels.join(t('common.days') === 'days' ? ', ' : '、') })
+      : `经前 7 天最常出现：${top3.join('、')}`,
+    interpretation: t ? tr('interpretation') : '这些症状在经前期明显更频繁，可能是经前综合征的表现。',
+    suggestion: t ? tr('suggestion') : '记下出现的时间和强度，未来可以提前准备（如备好止痛药、调整日程）。',
   };
 }
 
@@ -210,7 +233,7 @@ function pmsPatternInsight(ctx: InsightContext): Insight | null {
  * 3. 精力-阶段关联
  */
 function energyPhaseInsight(ctx: InsightContext): Insight | null {
-  const { periods, logs, prediction } = ctx;
+  const { periods, logs, prediction, t } = ctx;
   if (periods.length < 2 || logs.length < 14 || !prediction.avgCycleLen) return null;
 
   // 计算每个阶段的平均精力
@@ -254,24 +277,36 @@ function energyPhaseInsight(ctx: InsightContext): Insight | null {
   if (!peak) return null;
   if (peak.avg < 3) return null; // 数据无显著峰值
 
-  const phaseName = { menstrual: '经期', follicular: '卵泡期', ovulation: '排卵期', luteal: '黄体期' }[peak.phase];
+  // 阶段本地名（key 由 i18n 决定：'phases.menstrual' 等已存在）
+  const phaseName = t
+    ? t(`phases.${peak.phase}`)
+    : ({ menstrual: '经期', follicular: '卵泡期', ovulation: '排卵期', luteal: '黄体期' } as Record<Phase, string>)[peak.phase];
+
+  const tr = (key: string, params?: Record<string, unknown>) =>
+    t ? t(`insight.template.energy_phase.${key}`, params) : '';
 
   return {
     id: 'energy-phase',
     category: 'energy_phase',
     severity: 'info',
     emoji: '⚡',
-    title: '精力随周期的变化',
-    data: `${phaseName}平均精力 ${peak.avg.toFixed(1)}/5`,
-    interpretation: `你在${phaseName}的精力水平最高，这符合大多数女性的激素周期规律。`,
-    suggestion: `${phaseName}适合安排需要专注和创造力的工作；其他阶段注意休息。`,
+    title: t ? tr('title') : '精力随周期的变化',
+    data: t
+      ? tr('data', { phase: phaseName, avg: peak.avg.toFixed(1) })
+      : `${phaseName}平均精力 ${peak.avg.toFixed(1)}/5`,
+    interpretation: t
+      ? tr('interpretation', { phase: phaseName })
+      : `你在${phaseName}的精力水平最高，这符合大多数女性的激素周期规律。`,
+    suggestion: t
+      ? tr('suggestion', { phase: phaseName })
+      : `${phaseName}适合安排需要专注和创造力的工作；其他阶段注意休息。`,
   };
 }
 
 /**
  * 4. 睡眠-情绪关联
  */
-function sleepMoodInsight(logs: DailyLog[]): Insight | null {
+function sleepMoodInsight(logs: DailyLog[], t?: TranslateFn): Insight | null {
   if (logs.length < 7) return null;
 
   // 按睡眠时长分两组
@@ -294,15 +329,22 @@ function sleepMoodInsight(logs: DailyLog[]): Insight | null {
   const diff = longAvg - shortAvg;
   if (Math.abs(diff) < 0.5) return null;
 
+  const tr = (key: string, params?: Record<string, unknown>) =>
+    t ? t(`insight.template.sleep_mood.${key}`, params) : '';
+
   return {
     id: 'sleep-mood',
     category: 'sleep_mood',
     severity: diff > 1 ? 'gentle' : 'info',
     emoji: '🌙',
-    title: '睡眠影响情绪',
-    data: `睡眠 < 6h：情绪 ${shortAvg.toFixed(1)}/5，睡眠 ≥ 7h：${longAvg.toFixed(1)}/5`,
-    interpretation: `充足睡眠的日子里情绪明显更好（差异 ${diff.toFixed(1)} 分）。`,
-    suggestion: '尽量保证 7 小时以上睡眠，对情绪稳定很关键。',
+    title: t ? tr('title') : '睡眠影响情绪',
+    data: t
+      ? tr('data', { short: shortAvg.toFixed(1), long: longAvg.toFixed(1) })
+      : `睡眠 < 6h：情绪 ${shortAvg.toFixed(1)}/5，睡眠 ≥ 7h：${longAvg.toFixed(1)}/5`,
+    interpretation: t
+      ? tr('interpretation', { diff: diff.toFixed(1) })
+      : `充足睡眠的日子里情绪明显更好（差异 ${diff.toFixed(1)} 分）。`,
+    suggestion: t ? tr('suggestion') : '尽量保证 7 小时以上睡眠，对情绪稳定很关键。',
   };
 }
 
@@ -310,7 +352,7 @@ function sleepMoodInsight(logs: DailyLog[]): Insight | null {
  * 5. 今日提醒（基于当前阶段）
  */
 function todayTipInsight(ctx: InsightContext): Insight | null {
-  const { prediction, today, logs } = ctx;
+  const { prediction, today, logs, t } = ctx;
   if (!prediction.currentPhase) return null;
 
   const phase = prediction.currentPhase;
@@ -320,7 +362,8 @@ function todayTipInsight(ctx: InsightContext): Insight | null {
   const todayISO = format(today, 'yyyy-MM-dd');
   const todayLog = logs.find((l) => l.date === todayISO);
 
-  const baseTips: Record<Phase, { title: string; suggestion: string }> = {
+  // fallback 中文文案
+  const fallbackTips: Record<Phase, { title: string; suggestion: string }> = {
     menstrual: {
       title: `经期第 ${day} 天`,
       suggestion: '注意保暖，避免剧烈运动。多喝温热饮品，补充铁元素。',
@@ -339,7 +382,29 @@ function todayTipInsight(ctx: InsightContext): Insight | null {
     },
   };
 
-  const tip = baseTips[phase];
+  const tip = t
+    ? {
+        title: t(`insight.template.today.${phase}.title`, { day }),
+        suggestion: t(`insight.template.today.${phase}.suggestion`),
+      }
+    : fallbackTips[phase];
+
+  let data: string;
+  if (t) {
+    if (todayLog) {
+      const moodPart = todayLog.mood ? t('insight.template.today.moodPart', { mood: todayLog.mood }) : '';
+      const energyPart = todayLog.energy ? t('insight.template.today.energyPart', { energy: todayLog.energy }) : '';
+      data = t('insight.template.today.dataHasLog', { mood: moodPart, energy: energyPart });
+    } else {
+      data = t('insight.template.today.dataNone');
+    }
+  } else {
+    data = todayLog
+      ? `今日已记录：${
+          todayLog.mood ? `心情 ${todayLog.mood}/5` : ''
+        }${todayLog.energy ? `、精力 ${todayLog.energy}/5` : ''}`
+      : '今天还没有记录';
+  }
 
   return {
     id: `today-${phase}`,
@@ -347,12 +412,8 @@ function todayTipInsight(ctx: InsightContext): Insight | null {
     severity: 'info',
     emoji: '🌿',
     title: tip.title,
-    data: todayLog
-      ? `今日已记录：${
-          todayLog.mood ? `心情 ${todayLog.mood}/5` : ''
-        }${todayLog.energy ? `、精力 ${todayLog.energy}/5` : ''}`
-      : '今天还没有记录',
-    interpretation: '根据你的周期阶段给出建议。',
+    data,
+    interpretation: t ? t('insight.template.today.interpretation') : '根据你的周期阶段给出建议。',
     suggestion: tip.suggestion,
   };
 }
@@ -363,7 +424,7 @@ function todayTipInsight(ctx: InsightContext): Insight | null {
  * 检查当前周期是否与历史均值显著偏离（±2 个标准差）
  */
 function anomalyInsight(ctx: InsightContext): Insight | null {
-  const { periods, userAvgCycle, today } = ctx;
+  const { periods, userAvgCycle, today, t } = ctx;
   if (periods.length < 4) return null;
 
   const sorted = [...periods].sort((a, b) =>
@@ -391,16 +452,23 @@ function anomalyInsight(ctx: InsightContext): Insight | null {
   const daysSinceLast = differenceInDays(today, latestStart);
   const expected = userAvgCycle ?? mean;
 
+  const trE = (key: string, params?: Record<string, unknown>) =>
+    t ? t(`insight.template.anomaly.early.${key}`, params) : '';
+  const trL = (key: string, params?: Record<string, unknown>) =>
+    t ? t(`insight.template.anomaly.late.${key}`, params) : '';
+
   if (daysSinceLast < expected - 2 * std) {
     return {
       id: 'anomaly-early',
       category: 'anomaly',
       severity: 'important',
       emoji: '🌸',
-      title: '周期比平时提前',
-      data: `距上次月经 ${daysSinceLast} 天（平均 ${expected.toFixed(0)} 天）`,
-      interpretation: '周期提前可能与近期压力、作息变化、剧烈运动或饮食改变相关。',
-      suggestion: '留意近期生活变化，如果经常提前可咨询医生。',
+      title: t ? trE('title') : '周期比平时提前',
+      data: t
+        ? trE('data', { days: daysSinceLast, expected: expected.toFixed(0) })
+        : `距上次月经 ${daysSinceLast} 天（平均 ${expected.toFixed(0)} 天）`,
+      interpretation: t ? trE('interpretation') : '周期提前可能与近期压力、作息变化、剧烈运动或饮食改变相关。',
+      suggestion: t ? trE('suggestion') : '留意近期生活变化，如果经常提前可咨询医生。',
     };
   }
 
@@ -411,10 +479,12 @@ function anomalyInsight(ctx: InsightContext): Insight | null {
       category: 'anomaly',
       severity: 'important',
       emoji: '🌸',
-      title: '周期比平时延后',
-      data: `距上次月经 ${daysSinceLast} 天（平均 ${expected.toFixed(0)} 天，已延后 ${diff.toFixed(0)} 天）`,
-      interpretation: '周期延后可能与压力、体重变化、激素水平相关。如果你近期有性生活，延后也可能是怀孕的信号。',
-      suggestion: '留意身体其他信号；如果延后超过 2 周或经常延后，可考虑就医。',
+      title: t ? trL('title') : '周期比平时延后',
+      data: t
+        ? trL('data', { days: daysSinceLast, expected: expected.toFixed(0), diff: diff.toFixed(0) })
+        : `距上次月经 ${daysSinceLast} 天（平均 ${expected.toFixed(0)} 天，已延后 ${diff.toFixed(0)} 天）`,
+      interpretation: t ? trL('interpretation') : '周期延后可能与压力、体重变化、激素水平相关。如果你近期有性生活，延后也可能是怀孕的信号。',
+      suggestion: t ? trL('suggestion') : '留意身体其他信号；如果延后超过 2 周或经常延后，可考虑就医。',
     };
   }
 
@@ -456,6 +526,7 @@ export function buildInsights(
   today: Date = startOfDay(new Date()),
   userAvgCycle?: number,
   userAvgPeriod?: number,
+  t?: TranslateFn,
 ): Insight[] {
   const prediction = predictCycle(periods, today, userAvgCycle, userAvgPeriod);
   return generateInsights({
@@ -465,5 +536,6 @@ export function buildInsights(
     today,
     userAvgCycle,
     userAvgPeriod,
+    t,
   });
 }

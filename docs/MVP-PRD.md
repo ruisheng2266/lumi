@@ -1,8 +1,8 @@
 # Lumi — MVP 需求文档（V1.4）
 
-> 版本：v1.7  
-> 日期：2026-07-28  
-> 状态：V1.4 + V1.5 收尾全部完成，v0.2.0 已发布到 GitHub 并部署到 Cloudflare Pages
+> 版本：v1.8  
+> 日期：2026-07-30  
+> 状态：v0.3.1 已发布并部署到 Cloudflare Pages（Direct Upload）；路线图改用真实 tag 编号，见 §13 与 `docs/ROADMAP.md`
 
 ---
 
@@ -927,14 +927,20 @@ CREATE TABLE sessions (
 
 ## 13. 路线图
 
+> ⚠️ **版本号对齐**：下方使用 GitHub 实际 tag 编号（PRD 旧标签 V1 / V1.4 / V1.5 与之的映射见 `docs/ROADMAP.md` §0）。**v0.x = 纯本地功能（Free 全免费）；v1.0 = 引入后端 / 付费层（Plus）**。
+> 完整前瞻规划（含 v0.4 / v0.5 / v1.0 / v1.x+ 功能拆分、与定价策略的咬合、待定项）见 **`docs/ROADMAP.md`**（权威版本）。
+
 | 版本 | 时间 | 关键功能 | 状态 |
 | --- | --- | --- | --- |
-| **V1（MVP）** | 2026-07 | 周期追踪 + 排卵预测 + 健康日记 + AI 洞察（本地） + i18n（zh-CN/en） + 数据导出/清空 | ✅ 已发布 |
-| **V1.4** | 2026-07 | PWA（manifest + sw.js + 可安装） + 主题切换（浅/深） + **用户系统（Google OAuth + Cloudflare D1 + Pages Functions）** | ✅ 已发布 |
-| V1.5 | V1.4 后 2 周 | i18n 硬编码清理（Settings / Insights / Calendar / LogSheet） + 编辑/删除月经事件 UI + 编辑/删除日记 UI + flow 录入 + Insights 历史聚合图 + "关于"页 + 测试脚本挂载修复 | 🔜 进行中 |
-| V2 | V1.5 后 4 周 | 备孕模式（BBT 曲线） + 加密备份 + 导入历史数据 + i18n 扩展（ja/ko/zh-TW） | 📋 计划 |
-| V3 | V2 后 8 周 | 可选云同步（E2EE，用户自托管） + 多端同步 | 💭 远期 |
-| V4 | 未来 | 孕期模式 + 围绝经期模式 + 医生分享 | 💭 远期 |
+| **v0.2.0**（原 V1 MVP） | 2026-07-28 | 周期追踪 + 排卵预测 + 健康日记 + AI 洞察（本地） + i18n（zh-CN/en） + 数据导出/清空 | ✅ 已发布 |
+| **v0.3.0**（原 V1.4 同期） | 2026-07-29 | 版本号注入、PWA 图标、系统主题（浅/深/跟随）、洞察分类开关、PMS 本地化、排卵日标记、预测经期可视化、置信度分级、洞察折叠、i18n 文件化 | ✅ 已发布 |
+| **v0.3.1** | 2026-07-29 | i18n `translation` 包装层修复（消除原始 key 显示） | ✅ 已发布 |
+| **v0.4** | 待定 | 竞品数据导入（获客钩子）+ 特殊生理场景（流产/分娩/避孕方式等）+ 不规律周期诚实预测 + a11y 量化达标（Lighthouse A11y≥95）+ 医生 PDF 报告导出 | 📋 计划 |
+| **v0.5** | 待定 | 本地多年趋势&相关性 + 围绝经期专属工具 + i18n 扩展（ja/ko/zh-TW）+ 备孕模式基础（BBT 录入）+ 中立健康科普 | 📋 计划 |
+| **v1.0**（Plus 基础设施） | 远期 | 账号系统落地（OAuth+D1）+ 端到端加密跨设备同步 + 伴侣加密共享 + AI 洞察增强 | 💭 远期 |
+| **v1.x+** | 未来 | 智能硬件对接（Oura/Apple Health/Google Fit）+ 孕期模式 + 社区/教育内容 + 自托管同步 | 💭 远期 |
+
+> 注：用户系统（Google OAuth + Cloudflare D1）在 v0.3.0 时**仅完成 `functions/` 脚手架，未真正启用**；作为 v1.0「Plus 基础设施」的前置依赖，将于 v1.0 落地。健康数据始终仅存本地 IndexedDB，账号系统仅承载身份与偏好。
 
 ---
 
@@ -983,6 +989,7 @@ CREATE TABLE sessions (
 | v1.6 | 2026-07-28 | 文档对齐实际实现：§1 文档版本/目标版本/范围；§5.1 新增"用户系统"行；§5.2 移除"账号系统"（已纳入 §11.5）；§11.4.2 CSP 示例同步为 V1.4 实际值（含 Google 域白名单与 COOP/COEP）；§13 路线图标注 V1 / V1.4 已发布、V1.5 收尾项。 |
 | v1.7 | 2026-07-28 | **V1.5 收尾全部完成**：<br>• **i18n 硬编码清理**：13 个新命名空间（`account` / `overview` / `calendar` / `clear` / `logPage` / `periodEdit` / `logEdit` / `day` / `logList` / `confirm` / `flow` / `chart` / `about` / `template`），共 ~250 个 key × zh-CN + en 双语；`src/shared/lib/insights.ts` 重构为可选 `TranslateFn` 注入，单测零改动。<br>• **CRUD UI**：新增 `PeriodEditSheet` / `LogEditSheet` / `DayDetailSheet` 三个 Sheet；月经 / 日记支持增 / 改 / 删 + 二次确认；日历点击日期进入当日编辑。<br>• **Insights 历史聚合图**：新增 `InsightsCharts.tsx`（recharts 懒加载），含 mood/energy/sleep 趋势图 + 症状频率条形图；时间范围 7/30/90/全部。<br>• **About 页**：新增 `/about` 路由，承载版本 / 隐私 / AI 引擎 / 数据存储 / 账号系统 / 技术栈 / 致谢 / 仓库链接，满足 §6.4.5 / §12.1 / §12.3 全部验收。<br>• **测试挂载修复**：`vitest.config.ts` 扩展 `include` + `setupFiles`，根目录 `npm test` 一键 50 用例全跑通。<br>• **CI 完善**：`.github/workflows/deploy.yml` 拆分 `ci` / `deploy` 两个 job；PR trigger；concurrency 自动取消；build artifact 复用。 |
 | v0.2.0 | 2026-07-28 | **GitHub Release 发布**：tag `v0.2.0` 推送 + Release 页面创建（https://github.com/ruisheng2266/lumi/releases/tag/v0.2.0）。CI 自动部署到 Cloudflare Pages，production deploy `e570f2e0` 成功，线上 https://lumi365.com 已更新。`package.json` 版本 `0.1.0` → `0.2.0`。 |
+| v1.8 | 2026-07-30 | **路线图对齐真实 tag**：§1 状态更新为 v0.3.1；§13 路线图由内部里程碑标签（V1/V1.4/V1.5/V2…）改为实际发布 tag（v0.2.0 / v0.3.0 / v0.3.1），并澄清「用户系统仅完成脚手架、未启用」；新增权威前瞻规划 `docs/ROADMAP.md`（v0.4 信任加固+获客钩子 / v0.5 洞察深化+多语言+围绝经期 / v1.0 Plus 基础设施 / v1.x+ 生态扩展，并与 `docs/PRICING-STRATEGY.md` 咬合）。 |
 
 ---
 

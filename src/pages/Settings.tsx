@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useTranslation } from 'react-i18next';
-import { Download, Trash2, Info, LogIn, LogOut, Sun, Moon, Monitor } from 'lucide-react';
+import { Download, Trash2, Info, LogIn, LogOut, Sun, Moon, Monitor, Upload } from 'lucide-react';
 import { Card, CardTitle } from '../shared/ui/Card';
 import { Button } from '../shared/ui/Button';
 import { Sheet } from '../shared/ui/Sheet';
@@ -19,6 +19,7 @@ import {
 import { today } from '../shared/lib/date';
 import { useTheme } from '../shared/theme/useTheme';
 import { APP_VERSION } from '../shared/version';
+import { detectAndParse, type ImportPreview } from '../shared/lib/import';
 
 export function Settings() {
   const { t } = useTranslation();
@@ -30,6 +31,11 @@ export function Settings() {
   const { theme, setTheme } = useTheme();
   const [confirmClear, setConfirmClear] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [preview, setPreview] = useState<ImportPreview | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importResult, setImportResult] = useState<{ periods: number; logs: number } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const periodsCount = useLiveQuery(() => db.periods.count(), []);
   const logsCount = useLiveQuery(() => db.dailyLogs.count(), []);
@@ -75,6 +81,64 @@ export function Settings() {
     await db.delete();
     await db.open();
     setConfirmClear(false);
+  }
+
+  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // 允许重复选择同一文件
+    if (!file) return;
+    setImportError(null);
+    setImportResult(null);
+    try {
+      const text = await file.text();
+      const result = detectAndParse(text, file.name);
+      if (result.format === 'unknown') {
+        setImportError(t('settings.importUnsupported'));
+        return;
+      }
+      setPreview(result);
+    } catch {
+      setImportError(t('settings.importUnsupported'));
+    }
+  }
+
+  async function handleImportConfirm() {
+    if (!preview) return;
+    setImporting(true);
+    try {
+      let periodCount = 0;
+      let logCount = 0;
+      for (const p of preview.periods) {
+        const existing = await db.periods.where('startDate').equals(p.startDate).first();
+        if (existing?.id) {
+          await db.periods.update(existing.id, p);
+        } else {
+          await db.periods.add({ ...p, createdAt: Date.now(), updatedAt: Date.now() });
+        }
+        periodCount++;
+      }
+      for (const l of preview.dailyLogs) {
+        await dailyLogRepo.upsertByDate(l.date, {
+          mood: l.mood,
+          energy: l.energy,
+          sleepHours: l.sleepHours,
+          symptoms: l.symptoms,
+          notes: l.notes,
+        });
+        logCount++;
+      }
+      if (preview.profile) {
+        await userProfileRepo.upsert({
+          avgCycleLen: preview.profile.avgCycleLen ?? 28,
+          avgPeriodLen: preview.profile.avgPeriodLen ?? 5,
+          displayName: preview.profile.displayName,
+        });
+      }
+      setImportResult({ periods: periodCount, logs: logCount });
+      setPreview(null);
+    } finally {
+      setImporting(false);
+    }
   }
 
   return (
@@ -214,6 +278,29 @@ export function Settings() {
           </Button>
           <p className="text-xs text-fog -mt-1">{t('settings.exportDataDesc')}</p>
 
+          <Button
+            variant="ghost"
+            fullWidth
+            leftIcon={<Upload size={18} />}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {t('settings.importData')}
+          </Button>
+          <p className="text-xs text-fog -mt-1">{t('settings.importDataDesc')}</p>
+          {importError && <p className="text-xs text-coral-500">{importError}</p>}
+          {importResult && (
+            <p className="text-xs text-lavender-500">
+              {t('settings.importSuccess', { periods: importResult.periods, logs: importResult.logs })}
+            </p>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,.csv"
+            className="hidden"
+            onChange={handleFile}
+          />
+
           <div className="border-t border-lavender-100 pt-3">
             <Button
               variant="danger"
@@ -239,6 +326,56 @@ export function Settings() {
           <p className="text-lavender-500 mt-1">{t('about.title')} →</p>
         </Link>
       </section>
+
+      {/* 导入预览 Sheet */}
+      <Sheet open={preview !== null} onClose={() => setPreview(null)} title={t('settings.importPreviewTitle')}>
+        {preview && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-fog">{t('settings.importFormat')}</span>
+              <span className="font-medium text-ink">
+                {preview.format === 'lumi-json'
+                  ? t('settings.importFormatLumi')
+                  : preview.format === 'generic-csv'
+                    ? t('settings.importFormatCsv')
+                    : t('settings.importFormatUnknown')}
+              </span>
+            </div>
+            {preview.rowCount === 0 ? (
+              <p className="text-sm text-coral-500">{t('settings.importNoData')}</p>
+            ) : (
+              <ul className="text-sm text-ink space-y-1">
+                <li>{t('settings.importPeriodCount', { count: preview.periods.length })}</li>
+                <li>{t('settings.importLogCount', { count: preview.dailyLogs.length })}</li>
+              </ul>
+            )}
+            {preview.warnings.length > 0 && (
+              <div className="rounded-lg bg-coral-50 p-3 text-sm text-coral-500">
+                <p className="font-medium mb-1">{t('settings.importWarningTitle')}</p>
+                <ul className="list-disc list-inside space-y-0.5">
+                  {preview.warnings.map((w, i) => (
+                    <li key={i}>{w}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <p className="text-xs text-fog">{t('settings.importMergeHint')}</p>
+            <div className="flex gap-3">
+              <Button variant="ghost" fullWidth onClick={() => setPreview(null)} disabled={importing}>
+                {t('settings.importCancel')}
+              </Button>
+              <Button
+                variant="primary"
+                fullWidth
+                onClick={handleImportConfirm}
+                disabled={importing || preview.rowCount === 0}
+              >
+                {t('settings.importConfirm')}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Sheet>
 
       {/* 清空确认 Sheet */}
       <Sheet open={confirmClear} onClose={() => setConfirmClear(false)} title={t('settings.clearConfirmTitle')}>

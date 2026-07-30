@@ -57,6 +57,9 @@ export function LogSheet({ open, onClose }: LogSheetProps) {
             {[1, 2, 3, 4, 5].map((n) => (
               <button
                 key={n}
+                type="button"
+                aria-label={t(`moodLabel.${n}` as 'moodLabel.1')}
+                aria-pressed={mood === n}
                 onClick={() => setMood(mood === n ? undefined : (n as Rating))}
                 className={`flex-1 h-12 rounded-lg text-2xl transition ${
                   mood === n ? 'bg-lavender-300 ring-2 ring-lavender-200' : 'bg-lavender-50 hover:bg-lavender-100'
@@ -76,6 +79,9 @@ export function LogSheet({ open, onClose }: LogSheetProps) {
             {[1, 2, 3, 4, 5].map((n) => (
               <button
                 key={n}
+                type="button"
+                aria-label={t(`energyLabel.${n}` as 'energyLabel.1')}
+                aria-pressed={energy === n}
                 onClick={() => setEnergy(energy === n ? undefined : (n as Rating))}
                 className={`flex-1 h-10 rounded-lg transition ${
                   energy === n ? 'bg-coral-300 ring-2 ring-coral-200' : 'bg-coral-50 hover:bg-coral-100'

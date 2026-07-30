@@ -12,6 +12,7 @@ import {
   isAfter,
   isBefore,
 } from 'date-fns';
+import type { LifeEvent } from '../db/client';
 
 export type Phase = 'menstrual' | 'follicular' | 'ovulation' | 'luteal';
 
@@ -33,6 +34,65 @@ export interface CyclePrediction {
   confidence: 'none' | 'low' | 'medium' | 'high';
   avgCycleLen: number;
   cycleCount: number;
+  /** 特殊生理状态（孕期/产后/绝经/无周期）；存在时不做经期预测（v0.4） */
+  specialState: SpecialState | null;
+  /** 不规律时下次月经的可能区间（含端点），诚实预测用（v0.4） */
+  rangeStart: string | null;
+  rangeEnd: string | null;
+}
+
+/** 特殊生理状态：会抑制经期预测（v0.4） */
+export type SpecialStateType = 'pregnant' | 'postpartum' | 'menopause' | 'noCycle';
+export interface SpecialState {
+  type: SpecialStateType;
+  since: string; // 'YYYY-MM-DD'
+  until?: string;
+}
+
+/**
+ * 根据特殊生理事件推断当前是否处于「不可预测经期」的状态。
+ * - menopause / hysterectomy：永久不再有周期
+ * - pregnancy（endDate 未到或未填）：孕期进行中
+ * - birth 后 1 年内且无后续月经记录：产后（哺乳期）闭经
+ * birthControl* 不抑制预测，仅作标记。
+ */
+export function getSpecialState(
+  events: LifeEvent[],
+  periods: PeriodRecord[],
+  today: Date = new Date(),
+): SpecialState | null {
+  const t0 = startOfDay(today);
+
+  const menopause = events
+    .filter((e) => e.type === 'menopause' && !isAfter(parseISO(e.date), t0))
+    .sort((a, b) => b.date.localeCompare(a.date))[0];
+  if (menopause) return { type: 'menopause', since: menopause.date };
+
+  const hyst = events
+    .filter((e) => e.type === 'hysterectomy' && !isAfter(parseISO(e.date), t0))
+    .sort((a, b) => b.date.localeCompare(a.date))[0];
+  if (hyst) return { type: 'noCycle', since: hyst.date };
+
+  const preg = events.find(
+    (e) =>
+      e.type === 'pregnancy' &&
+      !isAfter(parseISO(e.date), t0) &&
+      (!e.endDate || !isBefore(parseISO(e.endDate), t0)),
+  );
+  if (preg) return { type: 'pregnant', since: preg.date, until: preg.endDate };
+
+  const births = events
+    .filter((e) => e.type === 'birth' && !isAfter(parseISO(e.date), t0))
+    .sort((a, b) => b.date.localeCompare(a.date));
+  if (births.length) {
+    const last = births[0];
+    const daysSince = differenceInDays(t0, parseISO(last.date));
+    const resumed = periods.some((p) => p.startDate > last.date);
+    if (daysSince <= 365 && !resumed) {
+      return { type: 'postpartum', since: last.date };
+    }
+  }
+  return null;
 }
 
 export const DEFAULT_CYCLE_LEN = 28;
@@ -145,10 +205,37 @@ export function predictCycle(
   today: Date = new Date(),
   userAvgCycle?: number,
   userAvgPeriod?: number,
+  lifeEvents?: LifeEvent[],
 ): CyclePrediction {
   const cycleCount = periods.length;
   const avgCycle = userAvgCycle ?? avgCycleLen(periods);
   const periodLen = userAvgPeriod ?? DEFAULT_PERIOD_LEN;
+
+  // 特殊生理状态（孕期/产后/绝经/无周期）：不做经期预测（v0.4）
+  const specialState = lifeEvents ? getSpecialState(lifeEvents, periods, today) : null;
+  if (
+    specialState &&
+    (specialState.type === 'pregnant' ||
+      specialState.type === 'postpartum' ||
+      specialState.type === 'menopause' ||
+      specialState.type === 'noCycle')
+  ) {
+    return {
+      nextPeriodStart: null,
+      nextPeriodEnd: null,
+      ovulationDay: null,
+      fertileWindowStart: null,
+      fertileWindowEnd: null,
+      currentDayInCycle: null,
+      currentPhase: null,
+      confidence: confidenceFor(cycleCount),
+      avgCycleLen: avgCycle,
+      cycleCount,
+      specialState,
+      rangeStart: null,
+      rangeEnd: null,
+    };
+  }
 
   if (cycleCount === 0) {
     return {
@@ -162,6 +249,9 @@ export function predictCycle(
       confidence: 'none',
       avgCycleLen: avgCycle,
       cycleCount: 0,
+      specialState: null,
+      rangeStart: null,
+      rangeEnd: null,
     };
   }
 
@@ -187,6 +277,21 @@ export function predictCycle(
   const fertileStart = addDays(ovulation, -5);
   const fertileEnd = addDays(ovulation, 1);
 
+  // 不规律周期：下次月经的可能区间（诚实预测，v0.4）
+  let rangeStart: string | null = null;
+  let rangeEnd: string | null = null;
+  if (cycleRegularity(periods) === 'irregular' && cycleCount >= 4) {
+    const intervals: number[] = [];
+    for (let i = 1; i < sorted.length; i++) {
+      intervals.push(differenceInDays(parseISO(sorted[i].startDate), parseISO(sorted[i - 1].startDate)));
+    }
+    const valid = intervals.filter((n) => n >= 15 && n <= 60);
+    if (valid.length) {
+      rangeStart = format(addDays(latestStart, Math.min(...valid)), 'yyyy-MM-dd');
+      rangeEnd = format(addDays(latestStart, Math.max(...valid)), 'yyyy-MM-dd');
+    }
+  }
+
   return {
     nextPeriodStart: format(nextStart, 'yyyy-MM-dd'),
     nextPeriodEnd: format(nextEnd, 'yyyy-MM-dd'),
@@ -198,6 +303,9 @@ export function predictCycle(
     confidence: confidenceFor(cycleCount),
     avgCycleLen: avgCycle,
     cycleCount,
+    specialState: null,
+    rangeStart,
+    rangeEnd,
   };
 }
 

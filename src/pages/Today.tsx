@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Droplet, Sparkles, Plus, Pencil } from 'lucide-react';
 import { Card, CardTitle } from '../shared/ui/Card';
 import { Button } from '../shared/ui/Button';
-import { periodRepo, settingsRepo, userProfileRepo, type Period } from '../shared/db/client';
-import { predictCycle, type CyclePrediction, type PeriodRecord } from '../shared/lib/predict';
+import { periodRepo, settingsRepo, userProfileRepo, lifeEventRepo, type Period } from '../shared/db/client';
+import { predictCycle, cycleRegularity, type CyclePrediction, type PeriodRecord } from '../shared/lib/predict';
 import { today, fmtShort, daysBetween } from '../shared/lib/date';
 import { useNavigate } from 'react-router-dom';
 import { LogSheet } from '../features/LogSheet';
@@ -23,6 +23,7 @@ export function Today() {
   // 实时查询周期数据
   const periods = useLiveQuery(() => periodRepo.list(), []);
   const profile = useLiveQuery(() => userProfileRepo.get(), []);
+  const lifeEvents = useLiveQuery(() => lifeEventRepo.list(), []);
 
   useEffect(() => {
     (async () => {
@@ -49,7 +50,10 @@ export function Today() {
     today(),
     profile?.avgCycleLen,
     profile?.avgPeriodLen,
+    lifeEvents ?? [],
   );
+  const regularity = cycleRegularity(periods as PeriodRecord[]);
+  const isIrregular = regularity === 'irregular' && prediction.cycleCount >= 4;
 
   // 判断问候语
   const hour = new Date().getHours();
@@ -80,8 +84,36 @@ export function Today() {
         <p className="text-sm text-fog mt-1">{fmtShort(today())}</p>
       </div>
 
+      {/* 特殊生理状态横幅（v0.4：孕期/产后/绝经/无周期） */}
+      {prediction.specialState && (
+        <Card className="bg-lavender-50 border-0">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl leading-none" aria-hidden="true">
+              {prediction.specialState.type === 'pregnant'
+                ? '🤰'
+                : prediction.specialState.type === 'postpartum'
+                ? '🍼'
+                : prediction.specialState.type === 'menopause'
+                ? '🌿'
+                : '🩺'}
+            </span>
+            <div className="flex-1">
+              <p className="font-semibold text-ink">{t(`lifeEvent.state_${prediction.specialState.type}`)}</p>
+              <p className="text-sm text-fog mt-1">{t('lifeEvent.stateDesc')}</p>
+              <button
+                type="button"
+                onClick={() => navigate('/settings')}
+                className="text-xs text-lavender-500 hover:text-lavender-600 mt-2 inline-flex items-center gap-1"
+              >
+                {t('lifeEvent.manage')} →
+              </button>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* 当前周期卡片 */}
-      {prediction.currentDayInCycle !== null ? (
+      {!prediction.specialState && (prediction.currentDayInCycle !== null ? (
         <Card className="bg-gradient-to-br from-lavender-100 via-cream to-coral-100 border-0">
           <div className="flex items-start justify-between mb-3">
             <div>
@@ -101,11 +133,18 @@ export function Today() {
           {daysToNext !== null && daysToNext >= 0 && (
             <div className="flex items-center gap-2 text-sm text-fog">
               <Droplet size={14} className="text-coral-500" />
-              {daysToNext === 0
-                ? t('today.nextPeriodToday')
-                : daysToNext === 1
-                ? t('today.nextPeriodTomorrow')
-                : t('today.nextPeriodIn', { days: daysToNext })}
+              {isIrregular && prediction.rangeStart && prediction.rangeEnd ? (
+                t('today.irregularRange', {
+                  start: fmtShort(prediction.rangeStart),
+                  end: fmtShort(prediction.rangeEnd),
+                })
+              ) : daysToNext === 0 ? (
+                t('today.nextPeriodToday')
+              ) : daysToNext === 1 ? (
+                t('today.nextPeriodTomorrow')
+              ) : (
+                t('today.nextPeriodIn', { days: daysToNext })
+              )}
             </div>
           )}
         </Card>
@@ -113,10 +152,10 @@ export function Today() {
         <Card variant="flat" className="text-center py-6">
           <p className="text-fog text-sm">{t('today.notEnoughData')}</p>
         </Card>
-      )}
+      ))}
 
       {/* 排卵日 + 易孕期 */}
-      {prediction.ovulationDay && (
+      {!prediction.specialState && prediction.ovulationDay && (
         <Card>
           <CardTitle>{t('today.ovulationIn')}</CardTitle>
           <p className="text-lg font-semibold tabular-nums text-coral-500">
@@ -197,6 +236,16 @@ export function Today() {
           {t('today.logToday')}
         </Button>
       </div>
+
+      {/* 不规律诚实预测（v0.4） */}
+      {!prediction.specialState && isIrregular && (
+        <Card variant="flat" className="border border-coral-200">
+          <p className="font-medium text-ink">{t('today.irregularTitle')}</p>
+          <p className="text-sm text-fog mt-1 leading-relaxed">
+            {t('today.irregularDesc', { count: prediction.cycleCount })}
+          </p>
+        </Card>
+      )}
 
       {/* 置信度提示（审计 #8：4 档分级文案） */}
       {prediction.confidence !== 'high' && (

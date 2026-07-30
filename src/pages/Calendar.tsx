@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useTranslation } from 'react-i18next';
-import { periodRepo, userProfileRepo } from '../shared/db/client';
+import { periodRepo, userProfileRepo, lifeEventRepo } from '../shared/db/client';
 import { Card } from '../shared/ui/Card';
 import { MonthCalendar } from '../features/MonthCalendar';
 import { DayDetailSheet } from '../features/DayDetailSheet';
@@ -10,6 +10,7 @@ export function Calendar() {
   const { t } = useTranslation();
   const periods = useLiveQuery(() => periodRepo.list(), []);
   const profile = useLiveQuery(() => userProfileRepo.get(), []);
+  const lifeEvents = useLiveQuery(() => lifeEventRepo.list(), []);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   if (!periods) {
@@ -25,6 +26,7 @@ export function Calendar() {
           periods={periods}
           userAvgCycle={profile?.avgCycleLen}
           userAvgPeriod={profile?.avgPeriodLen}
+          lifeEvents={lifeEvents ?? []}
           onDayClick={(date) => setSelectedDate(date)}
         />
       </Card>

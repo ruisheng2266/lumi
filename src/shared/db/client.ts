@@ -46,12 +46,34 @@ export interface InsightPref {
   enabled: boolean;
 }
 
+/** 特殊生理场景事件类型（v0.4 审计项：特殊生理场景） */
+export type LifeEventType =
+  | 'pregnancy' // 怀孕
+  | 'miscarriage' // 流产 / 小产
+  | 'birth' // 分娩
+  | 'hysterectomy' // 子宫切除
+  | 'menopause' // 绝经
+  | 'birthControlStart' // 开始避孕（如 IUD）
+  | 'birthControlStop'; // 停止避孕
+
+/** 特殊生理场景事件（不影响健康日记，仅用于调整预测与展示） */
+export interface LifeEvent {
+  id?: number;
+  type: LifeEventType;
+  date: string; // 'YYYY-MM-DD'
+  endDate?: string; // 主要用于 pregnancy 标记结束（分娩/流产另用独立事件）
+  notes?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export class LumiDB extends Dexie {
   periods!: Table<Period, number>;
   dailyLogs!: Table<DailyLog, number>;
   userProfile!: Table<UserProfile, number>;
   settings!: Table<Setting, string>;
   insightPrefs!: Table<InsightPref, string>;
+  lifeEvents!: Table<LifeEvent, number>;
 
   constructor() {
     super('LumiDB');
@@ -67,6 +89,11 @@ export class LumiDB extends Dexie {
     // v2 schema: 增加洞察分类偏好表（审计 #3）
     this.version(2).stores({
       insightPrefs: '&key',
+    });
+
+    // v3 schema: 增加特殊生理场景事件表（v0.4）
+    this.version(3).stores({
+      lifeEvents: '++id, date, type, createdAt',
     });
   }
 }
@@ -154,5 +181,22 @@ export const insightPrefRepo = {
   },
   async set(key: string, enabled: boolean) {
     return await db.insightPrefs.put({ key, enabled });
+  },
+};
+
+// Repository: LifeEvents (特殊生理场景)
+export const lifeEventRepo = {
+  async add(e: Omit<LifeEvent, 'id' | 'createdAt' | 'updatedAt'>) {
+    const now = Date.now();
+    return await db.lifeEvents.add({ ...e, createdAt: now, updatedAt: now });
+  },
+  async list(): Promise<LifeEvent[]> {
+    return await db.lifeEvents.orderBy('date').reverse().toArray();
+  },
+  async update(id: number, patch: Partial<LifeEvent>) {
+    return await db.lifeEvents.update(id, { ...patch, updatedAt: Date.now() });
+  },
+  async remove(id: number) {
+    return await db.lifeEvents.delete(id);
   },
 };

@@ -9,8 +9,10 @@ import {
   cycleRegularity,
   phaseOf,
   isInFertileWindow,
+  getSpecialState,
   DEFAULT_CYCLE_LEN,
   type PeriodRecord,
+  type LifeEvent,
 } from './predict';
 
 const today = new Date('2026-07-24T00:00:00');
@@ -217,5 +219,106 @@ describe('isInFertileWindow', () => {
   it('returns false when today is outside fertile window', () => {
     expect(isInFertileWindow(new Date('2026-07-01'), prediction)).toBe(false);
     expect(isInFertileWindow(new Date('2026-07-20'), prediction)).toBe(false);
+  });
+});
+describe('getSpecialState (v0.4)', () => {
+  const periods: PeriodRecord[] = [
+    { startDate: '2026-01-01' },
+    { startDate: '2026-01-29' },
+    { startDate: '2026-02-26' },
+    { startDate: '2026-03-25' },
+  ];
+
+  it('returns menopause state when menopause event is on/before today', () => {
+    const events: LifeEvent[] = [{ type: 'menopause', date: '2026-06-01', createdAt: 0, updatedAt: 0 }];
+    const state = getSpecialState(events, periods, new Date('2026-07-24'));
+    expect(state?.type).toBe('menopause');
+  });
+
+  it('returns noCycle for hysterectomy', () => {
+    const events: LifeEvent[] = [{ type: 'hysterectomy', date: '2026-05-01', createdAt: 0, updatedAt: 0 }];
+    expect(getSpecialState(events, periods, new Date('2026-07-24'))?.type).toBe('noCycle');
+  });
+
+  it('returns pregnant while pregnancy is active (no endDate)', () => {
+    const events: LifeEvent[] = [{ type: 'pregnancy', date: '2026-07-01', createdAt: 0, updatedAt: 0 }];
+    expect(getSpecialState(events, periods, new Date('2026-07-24'))?.type).toBe('pregnant');
+  });
+
+  it('does not return pregnant once pregnancy endDate passed', () => {
+    const events: LifeEvent[] = [{ type: 'pregnancy', date: '2026-07-01', endDate: '2026-07-10', createdAt: 0, updatedAt: 0 }];
+    expect(getSpecialState(events, periods, new Date('2026-07-24'))).toBeNull();
+  });
+
+  it('returns postpartum within 1 year of birth with no later period', () => {
+    const events: LifeEvent[] = [{ type: 'birth', date: '2026-06-01', createdAt: 0, updatedAt: 0 }];
+    expect(getSpecialState(events, periods, new Date('2026-07-24'))?.type).toBe('postpartum');
+  });
+
+  it('does not return postpartum once a period is logged after birth', () => {
+    const events: LifeEvent[] = [{ type: 'birth', date: '2026-06-01', createdAt: 0, updatedAt: 0 }];
+    const withLater: PeriodRecord[] = [...periods, { startDate: '2026-07-01' }];
+    expect(getSpecialState(events, withLater, new Date('2026-07-24'))).toBeNull();
+  });
+
+  it('birth control events never suppress prediction', () => {
+    const events: LifeEvent[] = [
+      { type: 'birthControlStart', date: '2026-05-01', createdAt: 0, updatedAt: 0 },
+    ];
+    expect(getSpecialState(events, periods, new Date('2026-07-24'))).toBeNull();
+  });
+});
+
+describe('predictCycle special-state suppression (v0.4)', () => {
+  const periods: PeriodRecord[] = [
+    { startDate: '2026-01-01' },
+    { startDate: '2026-01-29' },
+    { startDate: '2026-02-26' },
+    { startDate: '2026-03-25' },
+  ];
+  const menopause: LifeEvent[] = [{ type: 'menopause', date: '2026-06-01', createdAt: 0, updatedAt: 0 }];
+
+  it('suppresses period prediction during a no-cycle special state', () => {
+    const p = predictCycle(periods, new Date('2026-07-24'), undefined, undefined, menopause);
+    expect(p.specialState?.type).toBe('menopause');
+    expect(p.nextPeriodStart).toBeNull();
+    expect(p.currentDayInCycle).toBeNull();
+  });
+});
+
+describe('predictCycle irregular range (v0.4)', () => {
+  // 4 cycles with high variance (PCOS-like): 21, 45, 24, 40 days
+  const periods: PeriodRecord[] = [
+    { startDate: '2026-01-01' },
+    { startDate: '2026-01-22' }, // +21
+    { startDate: '2026-03-08' }, // +45
+    { startDate: '2026-04-01' }, // +24
+    { startDate: '2026-05-11' }, // +40
+  ];
+  const latest = '2026-05-11';
+
+  it('flags cycle as irregular with >= 4 cycles', () => {
+    expect(cycleRegularity(periods)).toBe('irregular');
+  });
+
+  it('provides a next-period range from min/max observed intervals', () => {
+    const p = predictCycle(periods, new Date('2026-07-24'));
+    expect(p.rangeStart).not.toBeNull();
+    expect(p.rangeEnd).not.toBeNull();
+    // latest start + min interval (21) .. latest start + max interval (45)
+    expect(p.rangeStart).toBe('2026-06-01');
+    expect(p.rangeEnd).toBe('2026-06-25');
+  });
+
+  it('leaves range null when cycle is regular', () => {
+    const regular: PeriodRecord[] = [
+      { startDate: '2026-04-01' },
+      { startDate: '2026-04-29' },
+      { startDate: '2026-05-27' },
+      { startDate: '2026-06-24' },
+    ];
+    const p = predictCycle(regular, new Date('2026-07-24'));
+    expect(p.rangeStart).toBeNull();
+    expect(p.rangeEnd).toBeNull();
   });
 });

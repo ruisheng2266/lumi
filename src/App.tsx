@@ -9,6 +9,7 @@ import { Insights } from './pages/Insights';
 import { Settings } from './pages/Settings';
 import { About } from './pages/About';
 import { Onboarding } from './pages/Onboarding';
+import { DoctorReport } from './pages/DoctorReport';
 
 export default function App() {
   const fetchUser = useAuth((s) => s.fetchUser);
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="/about" element={<About />} />
+      <Route path="/report" element={<DoctorReport />} />
       <Route path="*" element={<Navigate to="/today" replace />} />
     </Routes>
   );

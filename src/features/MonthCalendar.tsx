@@ -25,6 +25,7 @@ import i18next from '../shared/i18n';
 import { cn } from '../shared/lib/cn';
 import { IconButton } from '../shared/ui/IconButton';
 import { predictCycle, phaseOf, type Phase, type PeriodRecord } from '../shared/lib/predict';
+import type { LifeEvent, LifeEventType } from '../shared/db/client';
 
 const localeMap = { 'zh-CN': zhCN, en: enUS } as const;
 
@@ -32,6 +33,7 @@ interface MonthCalendarProps {
   periods: PeriodRecord[];
   userAvgCycle?: number;
   userAvgPeriod?: number;
+  lifeEvents?: LifeEvent[];
   onDayClick?: (date: Date) => void;
 }
 
@@ -42,7 +44,17 @@ const PHASE_STYLE: Record<Phase, { bg: string; text: string; emoji: string }> = 
   luteal: { bg: 'bg-lavender-50', text: 'text-lavender-600', emoji: '🌙' },
 };
 
-export function MonthCalendar({ periods, userAvgCycle, userAvgPeriod, onDayClick }: MonthCalendarProps) {
+const EVENT_GLYPH: Record<LifeEventType, string> = {
+  pregnancy: '🤰',
+  miscarriage: '💔',
+  birth: '🍼',
+  hysterectomy: '🩺',
+  menopause: '🌿',
+  birthControlStart: '💊',
+  birthControlStop: '➖',
+};
+
+export function MonthCalendar({ periods, userAvgCycle, userAvgPeriod, lifeEvents, onDayClick }: MonthCalendarProps) {
   const { t } = useTranslation();
   const today = new Date();
   const [viewMonth, setViewMonth] = useState(startOfMonth(today));
@@ -56,8 +68,16 @@ export function MonthCalendar({ periods, userAvgCycle, userAvgPeriod, onDayClick
   const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
   const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
 
-  // 计算预测
-  const prediction = predictCycle(periods, today, userAvgCycle, userAvgPeriod);
+  // 计算预测（含特殊生理状态抑制，v0.4）
+  const prediction = predictCycle(periods, today, userAvgCycle, userAvgPeriod, lifeEvents);
+
+  // 特殊生理事件按日期归并（v0.4）
+  const lifeEventByDay = new Map<string, LifeEventType[]>();
+  for (const ev of lifeEvents ?? []) {
+    const arr = lifeEventByDay.get(ev.date) ?? [];
+    arr.push(ev.type);
+    lifeEventByDay.set(ev.date, arr);
+  }
 
   // 计算周期阶段
   const phaseByDay = new Map<string, Phase>();
@@ -159,6 +179,7 @@ export function MonthCalendar({ periods, userAvgCycle, userAvgPeriod, onDayClick
           const isOvulation = ovulationDays.has(iso);
           const isPredictedPeriod = predictedPeriodDays.has(iso);
           const phase = phaseByDay.get(iso);
+          const evs = lifeEventByDay.get(iso) ?? [];
 
           let bg = 'bg-cream';
           let text = inMonth ? 'text-ink' : 'text-fog/50';
@@ -187,6 +208,16 @@ export function MonthCalendar({ periods, userAvgCycle, userAvgPeriod, onDayClick
             decoration = 'ring-2 ring-lavender-400 ring-offset-1';
           }
 
+          const ariaParts = [iso];
+          if (isPeriod) ariaParts.push(t('calendar.legendPeriod'));
+          if (isPredictedPeriod) ariaParts.push(t('calendar.legendPredicted'));
+          if (isOvulation) ariaParts.push(t('calendar.legendOvulation'));
+          if (isFertile) ariaParts.push(t('calendar.legendFertile'));
+          if (evs.length) {
+            ariaParts.push(evs.map((e) => t(`lifeEvent.type_${e}`)).join('、'));
+          }
+          if (isToday) ariaParts.push(t('calendar.legendToday'));
+
           return (
             <button
               key={iso}
@@ -198,7 +229,7 @@ export function MonthCalendar({ periods, userAvgCycle, userAvgPeriod, onDayClick
                 decoration,
                 'hover:opacity-80',
               )}
-              aria-label={iso}
+              aria-label={ariaParts.join(' ')}
             >
               <span className={cn('font-medium', isToday && 'text-lavender-600')}>
                 {format(day, 'd')}
@@ -206,6 +237,11 @@ export function MonthCalendar({ periods, userAvgCycle, userAvgPeriod, onDayClick
               {isPeriod && <span className="text-[10px] leading-none">●</span>}
               {marker && !isPeriod && (
                 <span className="text-[10px] leading-none text-coral-500">{marker}</span>
+              )}
+              {evs.length > 0 && !isPeriod && (
+                <span className="text-[10px] leading-none" aria-hidden="true">
+                  {EVENT_GLYPH[evs[0]]}
+                </span>
               )}
             </button>
           );
@@ -233,6 +269,12 @@ export function MonthCalendar({ periods, userAvgCycle, userAvgPeriod, onDayClick
         <div className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 rounded ring-2 ring-lavender-400"></span>
           {t('calendar.legendToday')}
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-3 rounded bg-lavender-100 ring-1 ring-lavender-300 text-center text-[9px] leading-3">
+            ★
+          </span>
+          {t('lifeEvent.title')}
         </div>
       </div>
     </div>

@@ -24,7 +24,7 @@ common: {
       add: '新增',
       endPeriod: '今天经期结束',
     },
-    nav: { today: '今日', calendar: '日历', log: '日记', insights: '洞察', education: '科普', settings: '设置', a11yLabel: '主导航' },
+    nav: { today: '今日', calendar: '日历', log: '日记', insights: '洞察', education: '科普', settings: '设置', more: '更多', a11yLabel: '主导航' },
     pages: {
       todayTitle: '今日',
       calendarTitle: '日历',

@@ -84,6 +84,9 @@
   .bg-cream { background-color: var(--color-bg); }
   body { background-color: var(--color-bg); color: var(--color-text); }
 
+  /* 跟随主题的表面色（导航栏/弹出层用，原硬编码 bg-white 在暗色下不生效） */
+  .bg-surface { background-color: var(--color-surface); }
+
   .text-ink { color: var(--color-text); }
   .text-fog { color: var(--color-text-muted); }
 

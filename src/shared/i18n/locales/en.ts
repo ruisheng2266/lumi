@@ -12,7 +12,7 @@ common: {
       startPeriod: 'Yes, start logging',
       add: 'Add', endPeriod: 'Period ends today',
     },
-    nav: { today: 'Today', calendar: 'Calendar', log: 'Log', insights: 'Insights', education: 'Learn', settings: 'Settings', a11yLabel: 'Main navigation' },
+    nav: { today: 'Today', calendar: 'Calendar', log: 'Log', insights: 'Insights', education: 'Learn', settings: 'Settings', more: 'More', a11yLabel: 'Main navigation' },
     pages: {
       todayTitle: 'Today', calendarTitle: 'Calendar', logTitle: 'Health Log',
       insightsTitle: 'AI Insights', educationTitle: 'Health Guide', settingsTitle: 'Settings',

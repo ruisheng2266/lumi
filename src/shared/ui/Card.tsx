@@ -25,5 +25,6 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
 });
 
 export function CardTitle({ children, className }: { children: ReactNode; className?: string }) {
-  return <h3 className={cn('text-sm font-medium text-fog mb-2', className)}>{children}</h3>;
+  // 作为页面内各区块标题，层级为 h2（页面主标题为 h1），避免跳过 h2 触发 heading-order 违规
+  return <h2 className={cn('text-sm font-medium text-fog mb-2', className)}>{children}</h2>;
 }

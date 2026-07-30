@@ -241,7 +241,7 @@ export function Settings() {
               </p>
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums text-lavender-400">
+              <p className="text-2xl font-bold tabular-nums text-lavender-500">
                 {profile?.avgCycleLen ?? '—'}
               </p>
               <p className="text-xs text-fog mt-1">{t('overview.avgCycleUnit')}</p>
@@ -385,6 +385,7 @@ export function Settings() {
             ref={fileInputRef}
             type="file"
             accept=".json,.csv"
+            aria-label={t('settings.importData')}
             className="hidden"
             onChange={handleFile}
           />
@@ -430,7 +431,7 @@ export function Settings() {
               </span>
             </div>
             {preview.rowCount === 0 ? (
-              <p className="text-sm text-coral-500">{t('settings.importNoData')}</p>
+              <p className="text-sm text-danger">{t('settings.importNoData')}</p>
             ) : (
               <ul className="text-sm text-ink space-y-1">
                 <li>{t('settings.importPeriodCount', { count: preview.periods.length })}</li>
@@ -438,7 +439,7 @@ export function Settings() {
               </ul>
             )}
             {preview.warnings.length > 0 && (
-              <div className="rounded-lg bg-coral-50 p-3 text-sm text-coral-500">
+              <div className="rounded-lg bg-coral-50 p-3 text-sm text-danger">
                 <p className="font-medium mb-1">{t('settings.importWarningTitle')}</p>
                 <ul className="list-disc list-inside space-y-0.5">
                   {preview.warnings.map((w, i) => (
@@ -469,7 +470,7 @@ export function Settings() {
       <Sheet open={confirmClear} onClose={() => setConfirmClear(false)} title={t('settings.clearConfirmTitle')}>
         <div className="space-y-4">
           <p className="text-sm text-ink leading-relaxed">{t('settings.clearConfirmDesc')}</p>
-          <div className="rounded-lg bg-coral-50 p-3 text-sm text-coral-500">
+          <div className="rounded-lg bg-coral-50 p-3 text-sm text-danger">
             {t('clear.willDelete')}
             <ul className="list-disc list-inside mt-1 space-y-0.5">
               <li>

@@ -5,6 +5,10 @@ import path from 'node:path';
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    // Vite 编译期注入的版本号；vitest 无构建步骤，此处提供占位值
+    __APP_VERSION__: JSON.stringify('0.4.1'),
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

@@ -292,6 +292,7 @@ common: {
       desc: 'Generate a printable health summary to share with your doctor at appointments.',
       open: 'View / print report',
       print: 'Print / Save as PDF',
+      downloadPdf: 'Download PDF',
       back: 'Back to settings',
       generatedOn: 'Generated on',
       disclaimer: 'This report is generated locally by Lumi and is for personal health management only. It is not a medical diagnosis.',

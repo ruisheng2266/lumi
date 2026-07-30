@@ -46,8 +46,8 @@ function DateQuickPicker({ value, onChange }: { value: string; onChange: (v: str
             onClick={() => onChange(date)}
             className={`rounded-lg px-3 py-3 text-sm transition ${
               value === date
-                ? 'bg-lavender-300 text-white'
-                : 'bg-lavender-50 hover:bg-lavender-100'
+              ? 'bg-lavender-600 text-white'
+              : 'bg-lavender-50 hover:bg-lavender-100'
             }`}
           >
             {daysAgo === 0 ? t('common.today') : `-${daysAgo}d`}
@@ -180,7 +180,7 @@ export function PeriodEditSheet({
               )}
             </div>
             {isInvalidRange && (
-              <p className="text-xs text-coral-500 mt-1">{t('periodEdit.invalidRange')}</p>
+              <p className="text-xs text-danger mt-1">{t('periodEdit.invalidRange')}</p>
             )}
           </section>
 

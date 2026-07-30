@@ -18,7 +18,7 @@ export function Chip({ selected, onClick, icon, children, className }: ChipProps
       className={cn(
         'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm transition',
         selected
-          ? 'bg-lavender-300 text-white ring-2 ring-lavender-200'
+          ? 'bg-lavender-600 text-white ring-2 ring-lavender-200'
           : 'bg-lavender-50 text-lavender-600 hover:bg-lavender-100',
         onClick && 'cursor-pointer active:scale-[0.97]',
         className,

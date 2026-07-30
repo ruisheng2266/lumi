@@ -334,6 +334,7 @@ common: {
       desc: '生成一份可打印的健康摘要，方便就诊时与医生沟通。',
       open: '查看 / 打印报告',
       print: '打印 / 保存为 PDF',
+      downloadPdf: '下载 PDF',
       back: '返回设置',
       generatedOn: '生成日期',
       disclaimer: '本报告由 Lumi 本地生成，仅供个人健康管理参考，不构成医学诊断。',

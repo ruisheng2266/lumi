@@ -1,7 +1,7 @@
 {
   "name": "lumi",
   "private": true,
-  "version": "0.4.1",
+  "version": "0.4.2",
   "type": "module",
   "description": "Lumi - 温柔、私密、只属于你的女性健康追踪工具",
   "scripts": {
@@ -14,11 +14,14 @@
     "lint": "eslint . --ext .ts,.tsx"
   },
   "dependencies": {
+    "axe-core": "^4.12.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "dexie": "^4.0.7",
     "dexie-react-hooks": "^1.1.7",
+    "html2canvas": "^1.4.1",
     "i18next": "^23.11.5",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.395.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

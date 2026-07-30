@@ -3,9 +3,11 @@
  * 医生报告（v0.4）：本地生成可打印的健康摘要，便于就诊沟通。
  * 通过浏览器「打印 / 另存为 PDF」导出，无任何网络请求。
  */
+import { useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { Download, Printer } from 'lucide-react';
 import { Button } from '../shared/ui/Button';
 import {
   periodRepo,
@@ -17,10 +19,28 @@ import {
 } from '../shared/db/client';
 import { avgCycleLen, cycleRegularity } from '../shared/lib/predict';
 import { fromISO, fmtShort, daysBetween } from '../shared/lib/date';
+import { exportElementToPdf } from '../shared/lib/pdf';
 
 export function DoctorReport() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
+
+  async function handleDownload() {
+    if (!reportRef.current || exporting) return;
+    setExporting(true);
+    try {
+      const stamp = new Date().toISOString().slice(0, 10);
+      await exportElementToPdf(reportRef.current, {
+        filename: `lumi-doctor-report-${stamp}.pdf`,
+      });
+    } catch (err) {
+      console.error('PDF export failed', err);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const periods = useLiveQuery(() => periodRepo.list(), []);
   const logs = useLiveQuery(() => dailyLogRepo.list(), []);
@@ -81,13 +101,32 @@ export function DoctorReport() {
           <Button variant="ghost" size="sm" onClick={() => navigate('/settings')}>
             ← {t('report.back')}
           </Button>
-          <Button variant="primary" size="sm" onClick={() => window.print()}>
-            {t('report.print')}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              leftIcon={<Printer size={16} />}
+              onClick={() => window.print()}
+            >
+              {t('report.print')}
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Download size={16} />}
+              onClick={handleDownload}
+              disabled={exporting}
+            >
+              {exporting ? '…' : t('report.downloadPdf')}
+            </Button>
+          </div>
         </div>
 
-        {/* 报告主体 */}
-        <div className="bg-white rounded-lg shadow-card p-6 print:shadow-none print:p-0">
+        {/* 报告主体（导出锚点） */}
+        <div
+          ref={reportRef}
+          className="bg-white rounded-lg shadow-card p-6 print:shadow-none print:p-0"
+        >
           {/* 抬头 */}
           <header className="border-b border-lavender-100 pb-4 mb-5">
             <h1 className="text-2xl font-semibold text-ink">Lumi · {t('report.title')}</h1>

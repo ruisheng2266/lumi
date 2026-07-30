@@ -292,7 +292,7 @@ function DateQuickPicker({ value, onChange }: { value: string; onChange: (v: str
             onClick={() => onChange(date)}
             className={`rounded-lg px-3 py-3 text-sm transition ${
               value === date
-                ? 'bg-lavender-300 text-white'
+                ? 'bg-lavender-600 text-white'
                 : 'bg-lavender-50 hover:bg-lavender-100'
             }`}
           >

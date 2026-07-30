@@ -87,7 +87,7 @@ export function LogSheet({ open, onClose }: LogSheetProps) {
                   energy === n ? 'bg-coral-300 ring-2 ring-coral-200' : 'bg-coral-50 hover:bg-coral-100'
                 }`}
               >
-                <span className="text-sm font-medium text-coral-600">
+                <span className="text-sm font-medium text-ink">
                   {t(`energyLabel.${n}` as 'energyLabel.1')}
                 </span>
               </button>

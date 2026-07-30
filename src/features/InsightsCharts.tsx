@@ -168,7 +168,7 @@ export function InsightsCharts({ logs }: InsightsChartsProps) {
               onClick={() => setRange(r)}
               className={`px-3 py-1.5 rounded-full transition ${
                 range === r
-                  ? 'bg-lavender-300 text-white'
+                  ? 'bg-lavender-600 text-white'
                   : 'bg-lavender-50 text-fog hover:bg-lavender-100'
               }`}
             >

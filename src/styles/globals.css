@@ -75,7 +75,7 @@
   .chip {
     @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm;
     background-color: var(--color-accent-soft);
-    color: var(--color-accent);
+    color: var(--color-accent-text);
   }
 }
 
@@ -104,6 +104,23 @@
   .border-lavender-100 { border-color: var(--color-border); }
   .border-lavender-50 { border-color: var(--color-border); }
 }
+
+/* 深色模式：品牌色「文字 / 软底色」随主题变亮（a11y，2026-07-31）
+   浅色模式下 Tailwind 配置的固定深色（lavender #7A5CA8 / coral #A85F47）已 ≥4.5:1，无需覆盖；
+   但同一批固定色在深色底上仅 ~3:1 不达标，故仅在 .dark 下改用随主题的更亮同色系。
+   用 .dark 前缀（特异性 0,2,0）盖过 Tailwind 工具类（0,1,0），且不动 bg-lavender-600 等按钮背景。 */
+.dark .text-lavender-500,
+.dark .text-lavender-600 { color: var(--color-accent); }
+.dark .text-coral-500,
+.dark .text-coral-700 { color: var(--color-coral); }
+
+/* 软底（卡片 / 标签 / 日历标记背景）随主题变深，避免深色模式下「浅色块 + 浅字」对比失败 */
+.dark .bg-lavender-50,
+.dark .bg-lavender-100,
+.dark .bg-lavender-300 { background-color: var(--color-accent-soft); }
+.dark .bg-coral-50,
+.dark .bg-coral-100,
+.dark .bg-coral-300 { background-color: var(--color-coral-soft); }
 
 /* 键盘可达性：统一焦点轮廓（a11y，v0.4） */
 :focus-visible {

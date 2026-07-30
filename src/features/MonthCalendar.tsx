@@ -38,9 +38,9 @@ interface MonthCalendarProps {
 }
 
 const PHASE_STYLE: Record<Phase, { bg: string; text: string; emoji: string }> = {
-  menstrual: { bg: 'bg-coral-100', text: 'text-coral-500', emoji: '🩸' },
+  menstrual: { bg: 'bg-coral-100', text: 'text-coral-700', emoji: '🩸' },
   follicular: { bg: 'bg-lavender-50', text: 'text-lavender-500', emoji: '🌱' },
-  ovulation: { bg: 'bg-coral-50', text: 'text-coral-500', emoji: '✨' },
+  ovulation: { bg: 'bg-coral-50', text: 'text-coral-700', emoji: '✨' },
   luteal: { bg: 'bg-lavender-50', text: 'text-lavender-600', emoji: '🌙' },
 };
 
@@ -237,7 +237,7 @@ export function MonthCalendar({ periods, userAvgCycle, userAvgPeriod, lifeEvents
               </span>
               {isPeriod && <span className="text-[10px] leading-none">●</span>}
               {marker && !isPeriod && (
-                <span className="text-[10px] leading-none text-coral-500">{marker}</span>
+                <span className="text-[10px] leading-none text-coral-700">{marker}</span>
               )}
               {evs.length > 0 && !isPeriod && (
                 <span className="text-[10px] leading-none" aria-hidden="true">
@@ -260,11 +260,11 @@ export function MonthCalendar({ periods, userAvgCycle, userAvgPeriod, lifeEvents
           {t('calendar.legendFertile')}
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded bg-coral-100 ring-1 ring-coral-300 text-center text-[9px] leading-3 text-coral-500">✸</span>
+          <span className="inline-block w-3 h-3 rounded bg-coral-100 ring-1 ring-coral-300 text-center text-[9px] leading-3 text-coral-700">✸</span>
           {t('calendar.legendOvulation')}
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded bg-coral-100 ring-1 ring-coral-300 text-center text-[9px] leading-3 text-coral-500">≈</span>
+          <span className="inline-block w-3 h-3 rounded bg-coral-100 ring-1 ring-coral-300 text-center text-[9px] leading-3 text-coral-700">≈</span>
           {t('calendar.legendPredicted')}
         </div>
         <div className="flex items-center gap-1.5">

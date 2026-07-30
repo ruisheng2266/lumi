@@ -14,6 +14,7 @@ const SYMPTOM_KEYS = [
   'cramps', 'headache', 'bloating', 'discharge',
   'breast', 'nausea', 'appetite', 'fever',
   'sleepy', 'insomnia', 'acne', 'constipated', 'diarrhea',
+  'hotFlash', 'nightSweat',
 ] as const;
 
 interface LogEditSheetProps {
@@ -42,6 +43,7 @@ export function LogEditSheet({
   const [mood, setMood] = useState<Rating | undefined>();
   const [energy, setEnergy] = useState<Rating | undefined>();
   const [sleep, setSleep] = useState<number | undefined>(7.5);
+  const [bbt, setBbt] = useState<number | undefined>();
   const [symptoms, setSymptoms] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -54,12 +56,14 @@ export function LogEditSheet({
       setMood(log.mood);
       setEnergy(log.energy);
       setSleep(log.sleepHours);
+      setBbt(log.bbt);
       setSymptoms(log.symptoms ?? []);
       setNotes(log.notes ?? '');
     } else {
       setMood(undefined);
       setEnergy(undefined);
       setSleep(7.5);
+      setBbt(undefined);
       setSymptoms([]);
       setNotes('');
     }
@@ -73,6 +77,7 @@ export function LogEditSheet({
         mood,
         energy,
         sleepHours: sleep,
+        bbt,
         symptoms: symptoms.length ? symptoms : undefined,
         notes: notes.trim() || undefined,
       });
@@ -156,6 +161,23 @@ export function LogEditSheet({
                 className="flex-1 rounded-lg border border-lavender-100 bg-white px-4 py-2 outline-none focus:ring-2 focus:ring-lavender-300 tabular-nums"
               />
               <span className="text-sm text-fog">{t('log.hours')}</span>
+            </div>
+          </section>
+
+          {/* 基础体温（备孕） */}
+          <section>
+            <label className="block text-sm font-medium text-fog mb-2">{t('log.bbt')}</label>
+            <div className="flex items-baseline gap-3">
+              <input
+                type="number"
+                min={34}
+                max={40}
+                step={0.01}
+                value={bbt ?? ''}
+                onChange={(e) => setBbt(e.target.value === '' ? undefined : Number(e.target.value))}
+                className="flex-1 rounded-lg border border-lavender-100 bg-white px-4 py-2 outline-none focus:ring-2 focus:ring-lavender-300 tabular-nums"
+              />
+              <span className="text-sm text-fog">{t('log.bbtUnit')}</span>
             </div>
           </section>
 

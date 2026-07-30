@@ -7,6 +7,7 @@ import { Calendar } from './pages/Calendar';
 import { Log } from './pages/Log';
 import { Insights } from './pages/Insights';
 import { Settings } from './pages/Settings';
+import { Education } from './pages/Education';
 import { About } from './pages/About';
 import { Onboarding } from './pages/Onboarding';
 import { DoctorReport } from './pages/DoctorReport';
@@ -27,6 +28,7 @@ export default function App() {
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/log" element={<Log />} />
         <Route path="/insights" element={<Insights />} />
+        <Route path="/education" element={<Education />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="/about" element={<About />} />

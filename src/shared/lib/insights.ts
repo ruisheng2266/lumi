@@ -16,7 +16,7 @@ import {
   type PeriodRecord,
   type CyclePrediction,
 } from './predict';
-import type { DailyLog } from '../db/client';
+import type { DailyLog, LifeEvent } from '../db/client';
 
 export type InsightCategory =
   | 'regularity'
@@ -24,7 +24,8 @@ export type InsightCategory =
   | 'energy_phase'
   | 'sleep_mood'
   | 'today'
-  | 'anomaly';
+  | 'anomaly'
+  | 'perimenopause';
 
 /** 所有洞察分类（顺序即 UI 展示顺序，审计 #3） */
 export const INSIGHT_CATEGORIES: InsightCategory[] = [
@@ -34,6 +35,7 @@ export const INSIGHT_CATEGORIES: InsightCategory[] = [
   'sleep_mood',
   'today',
   'anomaly',
+  'perimenopause',
 ];
 
 export type InsightSeverity = 'info' | 'gentle' | 'important';
@@ -67,6 +69,8 @@ interface InsightContext {
   t?: TranslateFn;
   /** 需要隐藏（关闭）的洞察分类（审计 #3） */
   disabledCategories?: InsightCategory[];
+  /** 特殊生理事件（v0.5：围绝经期洞察用） */
+  lifeEvents?: LifeEvent[];
 }
 
 /**
@@ -92,6 +96,9 @@ export function generateInsights(ctx: InsightContext): Insight[] {
 
   const r6 = anomalyInsight(ctx);
   if (r6) insights.push(r6);
+
+  const r7 = perimenopauseInsight(ctx);
+  if (r7) insights.push(r7);
 
   const disabled = new Set(ctx.disabledCategories ?? []);
   return insights
@@ -512,6 +519,44 @@ function anomalyInsight(ctx: InsightContext): Insight | null {
   return null;
 }
 
+/**
+ * 7. 围绝经期洞察（v0.5）
+ *
+ * 当用户标记了"围绝经期"特殊事件时，汇总潮热/盗汗记录，并提示周期可能更不规律。
+ * 围绝经期不抑制经期预测（女性仍有月经），仅作为过渡提示。
+ */
+function perimenopauseInsight(ctx: InsightContext): Insight | null {
+  const { lifeEvents, logs, t } = ctx;
+  if (!lifeEvents || lifeEvents.length === 0) return null;
+
+  const hasPeri = lifeEvents.some((e) => e.type === 'perimenopause');
+  if (!hasPeri) return null;
+
+  let hot = 0;
+  let night = 0;
+  for (const log of logs) {
+    if (!log.symptoms) continue;
+    if (log.symptoms.includes('hotFlash')) hot += 1;
+    if (log.symptoms.includes('nightSweat')) night += 1;
+  }
+
+  const tr = (key: string, params?: Record<string, unknown>) =>
+    t ? t(`insight.template.peri.${key}`, params) : '';
+
+  return {
+    id: 'perimenopause',
+    category: 'perimenopause',
+    severity: 'gentle',
+    emoji: '🌿',
+    title: t ? tr('title') : '围绝经期模式',
+    data: t
+      ? tr('data', { hot, night })
+      : `已记录 ${hot} 次潮热、${night} 次盗汗`,
+    interpretation: t ? tr('interpretation') : '围绝经期（更年期过渡）常伴随潮热、盗汗与月经不规律。这些记录能帮你和医生了解过渡进展。',
+    suggestion: t ? tr('suggestion') : '若潮热/盗汗影响睡眠或生活，可记录频率与诱因，就医时提供给医生参考。',
+  };
+}
+
 // ===== 辅助函数 =====
 
 function avgOrNull(arr: number[]): number | null {
@@ -549,6 +594,7 @@ export function buildInsights(
   userAvgPeriod?: number,
   t?: TranslateFn,
   disabledCategories?: InsightCategory[],
+  lifeEvents?: LifeEvent[],
 ): Insight[] {
   const prediction = predictCycle(periods, today, userAvgCycle, userAvgPeriod);
   return generateInsights({
@@ -560,5 +606,6 @@ export function buildInsights(
     userAvgPeriod,
     t,
     disabledCategories,
+    lifeEvents,
   });
 }

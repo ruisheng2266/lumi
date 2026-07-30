@@ -52,6 +52,7 @@ export function Today() {
     profile?.avgPeriodLen,
     lifeEvents ?? [],
   );
+  const perimenopause = lifeEvents?.find((e) => e.type === 'perimenopause');
   const regularity = cycleRegularity(periods as PeriodRecord[]);
   const isIrregular = regularity === 'irregular' && prediction.cycleCount >= 4;
 
@@ -100,6 +101,26 @@ export function Today() {
             <div className="flex-1">
               <p className="font-semibold text-ink">{t(`lifeEvent.state_${prediction.specialState.type}`)}</p>
               <p className="text-sm text-fog mt-1">{t('lifeEvent.stateDesc')}</p>
+              <button
+                type="button"
+                onClick={() => navigate('/settings')}
+                className="text-xs text-lavender-500 hover:text-lavender-600 mt-2 inline-flex items-center gap-1"
+              >
+                {t('lifeEvent.manage')} →
+              </button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* 围绝经期提示横幅（v0.5：不抑制预测，仅作过渡提醒） */}
+      {perimenopause && (
+        <Card className="bg-lavender-50 border-0">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl leading-none" aria-hidden="true">🌿</span>
+            <div className="flex-1">
+              <p className="font-semibold text-ink">{t('today.perimenopause')}</p>
+              <p className="text-sm text-fog mt-1 leading-relaxed">{t('today.perimenopauseDesc')}</p>
               <button
                 type="button"
                 onClick={() => navigate('/settings')}

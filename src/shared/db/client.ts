@@ -20,6 +20,8 @@ export interface DailyLog {
   mood?: 1 | 2 | 3 | 4 | 5;
   energy?: 1 | 2 | 3 | 4 | 5;
   sleepHours?: number;
+  /** 基础体温（℃），备孕模式录入（v0.5） */
+  bbt?: number;
   symptoms?: string[];
   notes?: string;
   createdAt: number;
@@ -53,6 +55,7 @@ export type LifeEventType =
   | 'birth' // 分娩
   | 'hysterectomy' // 子宫切除
   | 'menopause' // 绝经
+  | 'perimenopause' // 围绝经期（更年期过渡，不抑制预测）
   | 'birthControlStart' // 开始避孕（如 IUD）
   | 'birthControlStop'; // 停止避孕
 

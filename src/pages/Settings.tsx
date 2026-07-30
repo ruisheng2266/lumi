@@ -58,6 +58,7 @@ export function Settings() {
     'birth',
     'hysterectomy',
     'menopause',
+    'perimenopause',
     'birthControlStart',
     'birthControlStop',
   ];

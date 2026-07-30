@@ -1,6 +1,6 @@
 import { Outlet, NavLink } from 'react-router-dom';
 import { useEffect } from 'react';
-import { Calendar, Home, BookHeart, Sparkles, Settings as SettingsIcon } from 'lucide-react';
+import { Calendar, Home, BookHeart, Sparkles, Settings as SettingsIcon, GraduationCap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../shared/lib/cn';
 
@@ -9,6 +9,7 @@ const navItems = [
   { to: '/calendar', icon: Calendar, key: 'calendar' },
   { to: '/log', icon: BookHeart, key: 'log' },
   { to: '/insights', icon: Sparkles, key: 'insights' },
+  { to: '/education', icon: GraduationCap, key: 'education' },
   { to: '/settings', icon: SettingsIcon, key: 'settings' },
 ] as const;
 
@@ -30,7 +31,7 @@ export function AppShell() {
         aria-label={t('nav.a11yLabel')}
         className="fixed bottom-0 inset-x-0 bg-white/90 backdrop-blur border-t border-lavender-50 pb-safe"
       >
-        <div className="max-w-3xl mx-auto grid grid-cols-5">
+        <div className="max-w-3xl mx-auto grid grid-cols-6">
           {navItems.map(({ to, icon: Icon, key }) => (
             <NavLink
               key={to}

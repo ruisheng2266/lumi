@@ -20,6 +20,8 @@ export interface DailyLog {
   mood?: 1 | 2 | 3 | 4 | 5;
   energy?: 1 | 2 | 3 | 4 | 5;
   sleepHours?: number;
+  /** 基础体温（℃），备孕模式录入（v0.5） */
+  bbt?: number;
   symptoms?: string[];
   notes?: string;
   createdAt: number;

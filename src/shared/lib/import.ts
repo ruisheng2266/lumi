@@ -156,6 +156,12 @@ const SYMPTOM_SYNONYMS: Record<string, string> = {
   // insomnia
   insomnia: 'insomnia', sleepless: 'insomnia',
   失眠: 'insomnia', 睡不着: 'insomnia',
+  // hotFlash
+  hotflash: 'hotFlash', hot_flash: 'hotFlash', flush: 'hotFlash',
+  潮热: 'hotFlash', 阵热: 'hotFlash',
+  // nightSweat
+  nightsweat: 'nightSweat', nightsweats: 'nightSweat', night_sweat: 'nightSweat',
+  盗汗: 'nightSweat', 夜间盗汗: 'nightSweat',
   // acne
   acne: 'acne', pimples: 'acne', pimple: 'acne', breakout: 'acne',
   痤疮: 'acne', 痘痘: 'acne', 爆痘: 'acne',
@@ -259,6 +265,7 @@ const COLUMN_SYNONYMS: Record<string, string[]> = {
   sleep: ['sleep', 'sleephours', 'sleepduration', '睡眠', '睡眠时长', '睡眠时间', '睡觉', 'sleepinghours'],
   notes: ['notes', 'note', '备注', '备注症状', '症状备注', '评论', 'comment', 'description', '描述', '笔记', 'memo'],
   symptoms: ['symptoms', 'symptom', '症状', '症状记录', 'tag', 'tags', '标记', 'signs'],
+  bbt: ['bbt', 'basaltemp', 'basalbodytemperature', 'temperature', '基础体温', '体温', '晨起体温'],
 };
 
 type FieldKey = keyof typeof COLUMN_SYNONYMS;
@@ -334,9 +341,13 @@ export function parseGenericCSV(text: string): ImportPreview {
     const sleepHours = sleepRaw !== undefined && !Number.isNaN(sleepRaw) ? sleepRaw : undefined;
     const symptoms = mapSymptoms(cells[colMap.symptoms]);
     const notes = isBlank(cells[colMap.notes]) ? undefined : cells[colMap.notes].trim();
+    const bbtRaw = colMap.bbt !== undefined && !isBlank(cells[colMap.bbt])
+      ? Number(cells[colMap.bbt])
+      : undefined;
+    const bbt = bbtRaw !== undefined && !Number.isNaN(bbtRaw) && bbtRaw >= 34 && bbtRaw <= 40 ? bbtRaw : undefined;
 
-    if (mood || energy || sleepHours || symptoms || notes) {
-      dailyLogs.push({ date: primaryDate, mood, energy, sleepHours, symptoms, notes });
+    if (mood || energy || sleepHours || symptoms || notes || bbt) {
+      dailyLogs.push({ date: primaryDate, mood, energy, sleepHours, bbt, symptoms, notes });
     }
   }
 

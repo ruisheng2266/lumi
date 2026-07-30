@@ -50,6 +50,7 @@ const EVENT_GLYPH: Record<LifeEventType, string> = {
   birth: '🍼',
   hysterectomy: '🩺',
   menopause: '🌿',
+  perimenopause: '🌿',
   birthControlStart: '💊',
   birthControlStop: '➖',
 };

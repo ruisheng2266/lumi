@@ -19,6 +19,7 @@ const SYMPTOM_KEYS = [
   'cramps', 'headache', 'bloating', 'discharge',
   'breast', 'nausea', 'appetite', 'fever',
   'sleepy', 'insomnia', 'acne', 'constipated', 'diarrhea',
+  'hotFlash', 'nightSweat',
 ] as const;
 
 type Metric = 'mood' | 'energy' | 'sleep';

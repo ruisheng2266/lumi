@@ -1,11 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useTranslation } from 'react-i18next';
 import { Sparkles, ChevronDown } from 'lucide-react';
-import { periodRepo, dailyLogRepo, userProfileRepo, insightPrefRepo } from '../shared/db/client';
+import { periodRepo, dailyLogRepo, userProfileRepo, insightPrefRepo, lifeEventRepo } from '../shared/db/client';
 import { buildInsights, type Insight, INSIGHT_CATEGORIES } from '../shared/lib/insights';
 import { Suspense, lazy, useState } from 'react';
 import { Card } from '../shared/ui/Card';
 const InsightsCharts = lazy(() => import('../features/InsightsCharts').then((m) => ({ default: m.InsightsCharts })));
+const LongTermCharts = lazy(() => import('../features/LongTermCharts').then((m) => ({ default: m.LongTermCharts })));
 import { today } from '../shared/lib/date';
 
 export function Insights() {
@@ -14,6 +15,7 @@ export function Insights() {
   const logs = useLiveQuery(() => dailyLogRepo.list(), []);
   const profile = useLiveQuery(() => userProfileRepo.get(), []);
   const prefs = useLiveQuery(() => insightPrefRepo.getAll(), []) ?? {};
+  const lifeEvents = useLiveQuery(() => lifeEventRepo.list(), []);
 
   if (!periods || !logs) {
     return <div className="text-fog text-center py-12">{t('common.loading')}</div>;
@@ -28,6 +30,7 @@ export function Insights() {
     profile?.avgPeriodLen,
     t,
     disabledCategories,
+    lifeEvents ?? [],
   );
 
   if (insights.length === 0) {
@@ -94,6 +97,11 @@ export function Insights() {
       {/* 趋势回顾：心情 / 精力 / 睡眠 + 症状频率（PRD §6.3.3） */}
       <Suspense fallback={<div className="h-40 rounded-2xl bg-lavender-50 animate-pulse" />}>
         <InsightsCharts logs={logs} />
+      </Suspense>
+
+      {/* 多年趋势 & 相关性 & BBT（v0.5） */}
+      <Suspense fallback={<div className="h-40 rounded-2xl bg-lavender-50 animate-pulse" />}>
+        <LongTermCharts periods={periods} logs={logs} />
       </Suspense>
 
       <Card variant="flat" className="text-xs text-fog text-center py-3">

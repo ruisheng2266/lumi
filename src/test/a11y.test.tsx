@@ -18,6 +18,7 @@ import { Settings } from '../pages/Settings';
 import { Calendar } from '../pages/Calendar';
 import { Log } from '../pages/Log';
 import { DoctorReport } from '../pages/DoctorReport';
+import { Education } from '../pages/Education';
 import { settingsRepo } from '../shared/db/client';
 
 afterEach(cleanup);
@@ -76,5 +77,8 @@ describe('a11y audit (axe-core)', () => {
   });
   it('DoctorReport 页面', async () => {
     await audit(<DoctorReport />, '/report');
+  });
+  it('Education 页面', async () => {
+    await audit(<Education />, '/');
   });
 });

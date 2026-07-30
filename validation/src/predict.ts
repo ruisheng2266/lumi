@@ -21,6 +21,7 @@ export type LifeEventType =
   | 'birth'
   | 'hysterectomy'
   | 'menopause'
+  | 'perimenopause'
   | 'birthControlStart'
   | 'birthControlStop';
 

@@ -7,6 +7,8 @@ coverage/
 # 测试与构建产物
 *.tsbuildinfo
 .cache/
+# vitest 生成的临时 timestamp 文件
+*.timestamp-*.mjs
 
 # 日志
 *.log

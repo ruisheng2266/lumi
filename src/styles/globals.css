@@ -122,6 +122,11 @@
 .dark .bg-coral-100,
 .dark .bg-coral-300 { background-color: var(--color-coral-soft); }
 
+/* danger 按钮底：深色模式下原 --color-danger 为浅红 #D88888，白字仅 2.69:1（不达标）。
+   改为深红 #A14A4A，白字达 5.84:1（AA）；hover 由 Button 的 brightness-95 进一步加深，两主题均达标。
+   bg-danger 仅 danger 按钮使用，不影响 text-danger（错误提示文字，浅红在深底本就达标）。 */
+.dark .bg-danger { background-color: #A14A4A; }
+
 /* 键盘可达性：统一焦点轮廓（a11y，v0.4） */
 :focus-visible {
   outline: 2px solid #6F58A0;

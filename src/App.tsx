@@ -11,6 +11,7 @@ import { Education } from './pages/Education';
 import { About } from './pages/About';
 import { Onboarding } from './pages/Onboarding';
 import { DoctorReport } from './pages/DoctorReport';
+import AuthCallback from './pages/AuthCallback';
 
 export default function App() {
   const fetchUser = useAuth((s) => s.fetchUser);
@@ -33,6 +34,7 @@ export default function App() {
       </Route>
       <Route path="/about" element={<About />} />
       <Route path="/report" element={<DoctorReport />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="*" element={<Navigate to="/today" replace />} />
     </Routes>
   );

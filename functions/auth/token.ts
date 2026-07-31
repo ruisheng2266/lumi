@@ -109,12 +109,7 @@ export const onRequestPost: Handler = async ({ request, env }) => {
       },
     );
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    const stack = err instanceof Error ? err.stack : '';
     console.error('Token exchange error:', err);
-    return Response.json(
-      { error: 'internal_error', detail: message, stack: stack?.slice(0, 500) },
-      { status: 500 },
-    );
+    return Response.json({ error: 'internal_error' }, { status: 500 });
   }
 };

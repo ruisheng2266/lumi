@@ -55,8 +55,7 @@ export default function AuthCallback() {
         const data = await res.json();
 
         if (!res.ok || !data.ok) {
-          const detail = data.detail ? `\n${data.detail}` : '';
-          setError(`${data.error || '登录失败，请重试'}${detail}`);
+          setError(data.error || '登录失败，请重试');
           setLoading(false);
           return;
         }

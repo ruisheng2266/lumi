@@ -29,7 +29,7 @@ export function Sheet({ open, onClose, title, children, className }: SheetProps)
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true">
       <div
-        className="absolute inset-0 bg-ink/40 backdrop-blur-sm animate-in fade-in"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in"
         onClick={onClose}
       />
       <div

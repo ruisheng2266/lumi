@@ -7,8 +7,8 @@ export default {
       colors: {
         // Lumi 设计系统（PRD §10.1）
         cream: '#FAF7F2',          // 主背景（暖奶油）
-        ink: '#2D2A26',            // 主文字（墨黑）
-        fog: '#6F6A64',            // 辅助文字（雾灰）— 加深以满足 WCAG AA 4.5:1（v0.4 a11y）
+        ink: 'var(--color-text)',            // 主文字：引用 CSS 变量，随主题切换（浅=墨黑/深=浅奶油）
+        fog: 'var(--color-text-muted)',      // 辅助文字：同上（浅=雾灰/深=亮雾灰）
         lavender: {
           50: '#F5F1FA',
           100: '#E8DFF4',

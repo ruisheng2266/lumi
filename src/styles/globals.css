@@ -87,9 +87,6 @@
   /* 跟随主题的表面色（导航栏/弹出层用，原硬编码 bg-white 在暗色下不生效） */
   .bg-surface { background-color: var(--color-surface); }
 
-  .text-ink { color: var(--color-text); }
-  .text-fog { color: var(--color-text-muted); }
-
   .bg-lavender-300 { background-color: var(--color-accent); }
   .bg-lavender-50 { background-color: var(--color-accent-soft); }
   .bg-lavender-100 { background-color: var(--color-accent-soft); }

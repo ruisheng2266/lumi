@@ -8,8 +8,7 @@
 import type { PagesFunctionContext, D1Database } from '../utils/types';
 import { completeOAuthLogin } from '../utils/oauth';
 import {
-  getOAuthStateFromCookie,
-  getPkceVerifierFromCookie,
+  getOAuthDataFromCookie,
 } from '../utils/session';
 import { pkceChallenge } from '../utils/pkce';
 import { generateAppleClientSecret, verifyAppleIdToken } from '../utils/apple-jwt';
@@ -48,16 +47,14 @@ export const onRequestPost: Handler = async (context) => {
 
   if (!code || !state) return fail('missing_params');
 
-  // 1. state 校验
-  const cookieState = getOAuthStateFromCookie(request);
-  if (!cookieState || cookieState !== state) {
+  // 1. 从单 cookie 解析 state + verifier（CSRF + PKCE）
+  const oauthData = getOAuthDataFromCookie(request);
+  if (!oauthData || oauthData.state !== state) {
     return new Response('State mismatch (CSRF protection)', { status: 400 });
   }
 
   // 2. PKCE 校验
-  const verifier = getPkceVerifierFromCookie(request);
-  if (!verifier) return new Response('Missing PKCE verifier', { status: 400 });
-  if (!codeChallenge || (await pkceChallenge(verifier)) !== codeChallenge) {
+  if (!codeChallenge || (await pkceChallenge(oauthData.verifier)) !== codeChallenge) {
     return new Response('PKCE verification failed', { status: 400 });
   }
 
@@ -78,7 +75,7 @@ export const onRequestPost: Handler = async (context) => {
         client_id: env.APPLE_CLIENT_ID,
         client_secret: clientSecret,
         redirect_uri: env.APPLE_REDIRECT_URI,
-        code_verifier: verifier,
+        code_verifier: oauthData.verifier,
       }),
     });
     if (!tokenRes.ok) return fail('apple_token_failed');

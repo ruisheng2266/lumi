@@ -30,18 +30,14 @@ export const onRequestGet: Handler = async ({ env }) => {
   });
 
   const secure = env.PUBLIC_URL.startsWith('https');
-  const cookie = [
-    `oauth_state=${state}; Path=/auth/apple/callback; HttpOnly; SameSite=Lax; Max-Age=600`,
-    `pkce_verifier=${verifier}; Path=/auth/apple/callback; HttpOnly; SameSite=Lax; Max-Age=600`,
-  ]
-    .map((c) => (secure ? `${c}; Secure` : c))
-    .join('; ');
+  const payload = JSON.stringify({ s: state, v: verifier });
+  const cookieValue = `oauth_data=${encodeURIComponent(payload)}; Path=/auth/apple/callback; HttpOnly; SameSite=Lax; Max-Age=600${secure ? '; Secure' : ''}`;
 
   return new Response(null, {
     status: 302,
     headers: {
       Location: `https://appleid.apple.com/auth/authorize?${params}`,
-      'Set-Cookie': cookie,
+      'Set-Cookie': cookieValue,
     },
   });
 };

@@ -6,8 +6,7 @@
 import type { PagesFunctionContext } from '../utils/types';
 import { completeOAuthLogin } from '../utils/oauth';
 import {
-  getOAuthStateFromCookie,
-  getPkceVerifierFromCookie,
+  getOAuthDataFromCookie,
 } from '../utils/session';
 import { pkceChallenge } from '../utils/pkce';
 
@@ -49,16 +48,14 @@ export const onRequestGet: Handler = async (context) => {
 
   if (error) return fail(error);
 
-  // 1. state 校验（CSRF）
-  const cookieState = getOAuthStateFromCookie(request);
-  if (!cookieState || cookieState !== state) {
+  // 1. 从单 cookie 解析 state + verifier（CSRF + PKCE）
+  const oauthData = getOAuthDataFromCookie(request);
+  if (!oauthData || oauthData.state !== state) {
     return new Response('State mismatch (CSRF protection)', { status: 400 });
   }
 
   // 2. PKCE 校验
-  const verifier = getPkceVerifierFromCookie(request);
-  if (!verifier) return new Response('Missing PKCE verifier', { status: 400 });
-  if (!codeChallenge || (await pkceChallenge(verifier)) !== codeChallenge) {
+  if (!codeChallenge || (await pkceChallenge(oauthData.verifier)) !== codeChallenge) {
     return new Response('PKCE verification failed', { status: 400 });
   }
 
@@ -71,7 +68,7 @@ export const onRequestGet: Handler = async (context) => {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         code,
-        code_verifier: verifier,
+        code_verifier: oauthData.verifier,
         client_id: env.GOOGLE_CLIENT_ID,
         client_secret: env.GOOGLE_CLIENT_SECRET,
         redirect_uri: `${env.PUBLIC_URL}/auth/callback`,

@@ -80,29 +80,42 @@ export function getSessionIdFromCookie(request: Request): string | null {
 }
 
 /**
- * 从 Cookie 解析 oauth_state（用于 CSRF 保护）
+ * 从 Cookie 解析 OAuth 数据（state + verifier 打包在单个 cookie 里）
+ * 返回 { state, verifier } 或 null
  */
-export function getOAuthStateFromCookie(request: Request): string | null {
+export function getOAuthDataFromCookie(request: Request): { state: string; verifier: string } | null {
   const cookieHeader = request.headers.get('cookie') || '';
   const match = cookieHeader
     .split(';')
     .map((c) => c.trim())
-    .find((c) => c.startsWith('oauth_state='));
+    .find((c) => c.startsWith('oauth_data='));
   if (!match) return null;
-  return match.substring('oauth_state='.length);
+  try {
+    const raw = decodeURIComponent(match.substring('oauth_data='.length));
+    const data = JSON.parse(raw);
+    if (typeof data?.s === 'string' && typeof data?.v === 'string') {
+      return { state: data.s, verifier: data.v };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 从 Cookie 解析 oauth_state（用于 CSRF 保护）
+ * @deprecated 改用 getOAuthDataFromCookie（单 cookie 方案）
+ */
+export function getOAuthStateFromCookie(request: Request): string | null {
+  return getOAuthDataFromCookie(request)?.state ?? null;
 }
 
 /**
  * 从 Cookie 解析 PKCE code_verifier（用于公开客户端校验）
+ * @deprecated 改用 getOAuthDataFromCookie（单 cookie 方案）
  */
 export function getPkceVerifierFromCookie(request: Request): string | null {
-  const cookieHeader = request.headers.get('cookie') || '';
-  const match = cookieHeader
-    .split(';')
-    .map((c) => c.trim())
-    .find((c) => c.startsWith('pkce_verifier='));
-  if (!match) return null;
-  return match.substring('pkce_verifier='.length);
+  return getOAuthDataFromCookie(request)?.verifier ?? null;
 }
 
 /**

@@ -69,11 +69,7 @@ export const onRequestPost: Handler = async ({ request, env }) => {
     if (!tokenRes.ok) {
       const errText = await tokenRes.text();
       console.error('Google token error:', tokenRes.status, errText);
-      // 临时返回详细错误以便排查；上线稳定后改为通用 message
-      return Response.json(
-        { error: 'token_exchange_failed', detail: errText, status: tokenRes.status, redirect_uri: redirectUri },
-        { status: 400 },
-      );
+      return Response.json({ error: 'token_exchange_failed' }, { status: 400 });
     }
 
     const tokens = (await tokenRes.json()) as GoogleTokenResponse;

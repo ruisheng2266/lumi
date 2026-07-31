@@ -119,7 +119,7 @@ export function Onboarding() {
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder={t('onboarding.nicknamePlaceholder')}
                 maxLength={30}
-                className="w-full rounded-lg border border-lavender-100 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-lavender-300"
+                className="w-full rounded-lg border border-border bg-surface px-4 py-3 outline-none focus:ring-2 focus:ring-lavender-300"
               />
             </Card>
 

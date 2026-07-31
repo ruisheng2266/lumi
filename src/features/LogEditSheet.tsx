@@ -158,7 +158,7 @@ export function LogEditSheet({
                 step={0.5}
                 value={sleep ?? ''}
                 onChange={(e) => setSleep(e.target.value === '' ? undefined : Number(e.target.value))}
-                className="flex-1 rounded-lg border border-lavender-100 bg-white px-4 py-2 outline-none focus:ring-2 focus:ring-lavender-300 tabular-nums"
+                className="flex-1 rounded-lg border border-border bg-surface px-4 py-2 outline-none focus:ring-2 focus:ring-lavender-300 tabular-nums"
               />
               <span className="text-sm text-fog">{t('log.hours')}</span>
             </div>
@@ -175,7 +175,7 @@ export function LogEditSheet({
                 step={0.01}
                 value={bbt ?? ''}
                 onChange={(e) => setBbt(e.target.value === '' ? undefined : Number(e.target.value))}
-                className="flex-1 rounded-lg border border-lavender-100 bg-white px-4 py-2 outline-none focus:ring-2 focus:ring-lavender-300 tabular-nums"
+                className="flex-1 rounded-lg border border-border bg-surface px-4 py-2 outline-none focus:ring-2 focus:ring-lavender-300 tabular-nums"
               />
               <span className="text-sm text-fog">{t('log.bbtUnit')}</span>
             </div>
@@ -208,7 +208,7 @@ export function LogEditSheet({
               placeholder={t('log.notesPlaceholder')}
               rows={3}
               maxLength={500}
-              className="w-full rounded-lg border border-lavender-100 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-lavender-300 resize-none"
+              className="w-full rounded-lg border border-border bg-surface px-4 py-3 outline-none focus:ring-2 focus:ring-lavender-300 resize-none"
             />
           </section>
 

@@ -409,7 +409,7 @@ export function Settings() {
       <section>
         <Link
           to="/about"
-          className="block rounded-2xl border border-lavender-100 bg-white text-center text-xs text-fog py-4 px-3 space-y-1 hover:bg-lavender-50 transition"
+          className="block rounded-2xl border border-border bg-surface text-center text-xs text-fog py-4 px-3 space-y-1 hover:bg-lavender-50 transition"
         >
           <p className="font-medium text-ink">Lumi · {t('settings.version')} {APP_VERSION}</p>
           <p>{t('overview.tagline')}</p>
@@ -510,7 +510,7 @@ export function Settings() {
               type="date"
               value={eventDate}
               onChange={(e) => setEventDate(e.target.value)}
-              className="w-full rounded-lg border border-lavender-100 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-lavender-300 tabular-nums"
+              className="w-full rounded-lg border border-border bg-surface px-4 py-3 outline-none focus:ring-2 focus:ring-lavender-300 tabular-nums"
             />
           </section>
           <section>
@@ -524,7 +524,7 @@ export function Settings() {
               placeholder={t('lifeEvent.notesPlaceholder')}
               rows={3}
               maxLength={500}
-              className="w-full rounded-lg border border-lavender-100 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-lavender-300 resize-none"
+              className="w-full rounded-lg border border-border bg-surface px-4 py-3 outline-none focus:ring-2 focus:ring-lavender-300 resize-none"
             />
           </section>
           <div className="flex gap-3 pt-2">

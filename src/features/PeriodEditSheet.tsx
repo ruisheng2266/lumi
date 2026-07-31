@@ -147,7 +147,7 @@ export function PeriodEditSheet({
             <button
               type="button"
               onClick={() => setShowStartPicker(true)}
-              className="w-full text-left rounded-lg border border-lavender-100 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-lavender-300 tabular-nums"
+              className="w-full text-left rounded-lg border border-border bg-surface px-4 py-3 outline-none focus:ring-2 focus:ring-lavender-300 tabular-nums"
             >
               {startDate || '—'}
             </button>
@@ -161,8 +161,8 @@ export function PeriodEditSheet({
             <button
               type="button"
               onClick={() => setShowEndPicker(true)}
-              className={`w-full text-left rounded-lg border bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-lavender-300 tabular-nums ${
-                isInvalidRange ? 'border-coral-300' : 'border-lavender-100'
+              className={`w-full text-left rounded-lg border bg-surface px-4 py-3 outline-none focus:ring-2 focus:ring-lavender-300 tabular-nums ${
+                isInvalidRange ? 'border-coral-300' : 'border-border'
               }`}
             >
               {endDate || <span className="text-fog">—</span>}
@@ -213,7 +213,7 @@ export function PeriodEditSheet({
               placeholder={t('periodEdit.notesPlaceholder')}
               rows={3}
               maxLength={500}
-              className="w-full rounded-lg border border-lavender-100 bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-lavender-300 resize-none"
+              className="w-full rounded-lg border border-border bg-surface px-4 py-3 outline-none focus:ring-2 focus:ring-lavender-300 resize-none"
             />
           </section>
 

@@ -95,12 +95,12 @@ export function Insights() {
       </div>
 
       {/* 趋势回顾：心情 / 精力 / 睡眠 + 症状频率（PRD §6.3.3） */}
-      <Suspense fallback={<div className="h-40 rounded-2xl bg-lavender-50 animate-pulse" />}>
+      <Suspense fallback={<div className="h-40 rounded-2xl bg-surface animate-pulse" />}>
         <InsightsCharts logs={logs} />
       </Suspense>
 
       {/* 多年趋势 & 相关性 & BBT（v0.5） */}
-      <Suspense fallback={<div className="h-40 rounded-2xl bg-lavender-50 animate-pulse" />}>
+      <Suspense fallback={<div className="h-40 rounded-2xl bg-surface animate-pulse" />}>
         <LongTermCharts periods={periods} logs={logs} />
       </Suspense>
 
@@ -115,9 +115,9 @@ function InsightCard({ insight }: { insight: Insight }) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const bgBySeverity = {
-    info: 'bg-white',
-    gentle: 'bg-lavender-50',
-    important: 'bg-coral-50',
+    info: 'bg-surface',
+    gentle: 'bg-surface',
+    important: 'bg-surface',
   }[insight.severity];
 
   const accentColor = {

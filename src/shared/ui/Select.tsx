@@ -45,7 +45,7 @@ export function Select({ value, onChange, options, placeholder, className }: Sel
         aria-haspopup="listbox"
         aria-expanded={open}
         className={cn(
-          'w-full flex items-center justify-between gap-3 rounded-lg border border-lavender-100 bg-white px-4 py-3 text-left transition',
+          'w-full flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3 text-left transition',
           'hover:bg-lavender-50 focus:outline-none focus:ring-2 focus:ring-lavender-300',
           open && 'ring-2 ring-lavender-300',
         )}
@@ -66,7 +66,7 @@ export function Select({ value, onChange, options, placeholder, className }: Sel
       {open && (
         <ul
           role="listbox"
-          className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-lavender-100 bg-white shadow-soft py-1"
+          className="absolute z-20 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-border bg-surface shadow-soft py-1"
         >
           {options.map((opt) => (
             <li

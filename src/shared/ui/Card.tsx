@@ -12,9 +12,9 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
 ) {
   const Tag = as;
   const base = {
-    default: 'bg-white rounded-lg shadow-card p-4',
-    flat: 'bg-lavender-50 rounded-lg p-4',
-    outlined: 'bg-white rounded-lg p-4 ring-1 ring-lavender-100',
+    default: 'bg-surface rounded-lg shadow-card p-4',
+    flat: 'bg-surface rounded-lg p-4',
+    outlined: 'bg-surface rounded-lg p-4 ring-1 ring-border',
   }[variant];
 
   return (

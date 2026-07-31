@@ -48,6 +48,10 @@ export const onRequestPost: Handler = async ({ request, env }) => {
       return Response.json({ error: 'missing_code_or_verifier' }, { status: 400 });
     }
 
+    // 从请求头推导实际 redirect_uri（兼容 www / 非 www / 自定义域名）
+    const requestOrigin = new URL(request.url).origin;
+    const redirectUri = `${requestOrigin}/auth/callback`;
+
     // 用 code + verifier 换 Google token
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -57,7 +61,7 @@ export const onRequestPost: Handler = async ({ request, env }) => {
         code_verifier: verifier,
         client_id: env.GOOGLE_CLIENT_ID,
         client_secret: env.GOOGLE_CLIENT_SECRET,
-        redirect_uri: `${env.PUBLIC_URL}/auth/callback`,
+        redirect_uri: redirectUri,
         grant_type: 'authorization_code',
       }),
     });
@@ -67,7 +71,7 @@ export const onRequestPost: Handler = async ({ request, env }) => {
       console.error('Google token error:', tokenRes.status, errText);
       // 临时返回详细错误以便排查；上线稳定后改为通用 message
       return Response.json(
-        { error: 'token_exchange_failed', detail: errText, status: tokenRes.status, redirect_uri: `${env.PUBLIC_URL}/auth/callback` },
+        { error: 'token_exchange_failed', detail: errText, status: tokenRes.status, redirect_uri: redirectUri },
         { status: 400 },
       );
     }

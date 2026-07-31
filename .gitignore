@@ -44,6 +44,9 @@ validation/node_modules/
 
 # 临时文件
 secrets.json
+*.p8
+.dev.vars
+*.dev.vars
 build.ps1
 validation/debug*.mjs
 validation/debug-test.ps1

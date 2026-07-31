@@ -29,18 +29,17 @@ export const onRequestGet: Handler = async ({ env }) => {
   });
 
   const secure = env.PUBLIC_URL.startsWith('https');
-  const cookie = [
-    `oauth_state=${state}; Path=/auth/callback; HttpOnly; SameSite=Lax; Max-Age=600`,
-    `pkce_verifier=${verifier}; Path=/auth/callback; HttpOnly; SameSite=Lax; Max-Age=600`,
-  ]
-    .map((c) => (secure ? `${c}; Secure` : c))
-    .join('; ');
+  const makeCookie = (value: string) =>
+    (secure ? `${value}; Secure` : value);
+
+  const headers = new Headers({
+    Location: `https://accounts.google.com/o/oauth2/v2/auth?${params}`,
+  });
+  headers.append('Set-Cookie', makeCookie(`oauth_state=${state}; Path=/auth/callback; HttpOnly; SameSite=Lax; Max-Age=600`));
+  headers.append('Set-Cookie', makeCookie(`pkce_verifier=${verifier}; Path=/auth/callback; HttpOnly; SameSite=Lax; Max-Age=600`));
 
   return new Response(null, {
     status: 302,
-    headers: {
-      Location: `https://accounts.google.com/o/oauth2/v2/auth?${params}`,
-      'Set-Cookie': cookie,
-    },
+    headers,
   });
 };

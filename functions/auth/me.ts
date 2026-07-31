@@ -3,45 +3,15 @@
  * 返回当前登录用户信息
  */
 
-interface D1Database {
-  prepare: (sql: string) => {
-    bind: (...values: unknown[]) => {
-      first: <T = unknown>(col?: string) => Promise<T | null>;
-      run: () => Promise<{ meta: { changes: number; last_row_id: number } }>;
-      all: <T = unknown>() => Promise<T[]>;
-    };
-  };
-}
-
-interface PagesFunctionContext<E = unknown> {
-  request: Request;
-  env: E;
-  params: Record<string, string>;
-  waitUntil: (promise: Promise<unknown>) => void;
-  passThroughOnException: () => void;
-  next: (input?: Request | string) => Promise<Response>;
-  data: Record<string, unknown>;
-}
-
-type PagesFunction<E = unknown> = (
-  context: PagesFunctionContext<E>,
-) => Promise<Response> | Response;
+import type { PagesFunctionContext, D1Database } from '../utils/types';
 
 interface Env {
   DB: D1Database;
 }
 
-interface User {
-  id: string;
-  google_id: string;
-  email: string;
-  name: string | null;
-  picture: string | null;
-  created_at: number;
-  last_login_at: number;
-}
+type Handler = (context: PagesFunctionContext<Env>) => Promise<Response> | Response;
 
-export const onRequestGet: PagesFunction<Env> = async (context) => {
+export const onRequestGet: Handler = async (context) => {
   const { getSessionIdFromCookie, validateSession } = await import(
     '../utils/session'
   );

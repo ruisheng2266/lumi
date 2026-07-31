@@ -240,7 +240,11 @@ common: {
     account: {
       title: '账号',
       loginWithGoogle: '用 Google 登录',
+      loginWithApple: '用 Apple 登录',
       logout: '登出',
+      deleteAccount: '删除账号',
+      deleteAccountConfirm: '确定要删除账号吗？此操作不可撤销，云端数据将被永久清除。',
+      deleteAccountHint: '删除账号会清除云端所有关联数据（偏好、订阅记录等）。本地健康数据不受影响。',
       syncHint: '登录后可保存偏好到云端；健康数据仍仅存储在本地。',
     },
     overview: {

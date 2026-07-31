@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useTranslation } from 'react-i18next';
-import { Download, Trash2, Info, LogIn, LogOut, Sun, Moon, Monitor, Upload, FileText, Plus } from 'lucide-react';
+import { Download, Trash2, Info, LogIn, LogOut, Sun, Moon, Monitor, Upload, FileText, Plus, Apple } from 'lucide-react';
 import { Card, CardTitle } from '../shared/ui/Card';
 import { Button } from '../shared/ui/Button';
 import { Sheet } from '../shared/ui/Sheet';
@@ -30,6 +30,7 @@ export function Settings() {
   const authLoading = useAuth((s) => s.loading);
   const login = useAuth((s) => s.login);
   const logout = useAuth((s) => s.logout);
+  const deleteAccount = useAuth((s) => s.deleteAccount);
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [confirmClear, setConfirmClear] = useState(false);
@@ -191,32 +192,52 @@ export function Settings() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">{t('pages.settingsTitle')}</h1>
 
-      {/* Account (optional, V1.4) */}
+      {/* Account (optional, V1.0) */}
       <section>
         <CardTitle>{t('account.title')}</CardTitle>
         <Card>
           {authLoading ? (
             <p className="text-sm text-fog">{t('common.loading')}</p>
           ) : user ? (
-            <div className="flex items-center gap-3">
-              {user.picture && (
-                <img src={user.picture} alt="" className="h-10 w-10 rounded-full" referrerPolicy="no-referrer" />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{user.name || user.email}</p>
-                <p className="text-xs text-fog truncate">{user.email}</p>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                {user.picture && (
+                  <img src={user.picture} alt="" className="h-10 w-10 rounded-full" referrerPolicy="no-referrer" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{user.name || user.email}</p>
+                  <p className="text-xs text-fog truncate">{user.email}</p>
+                </div>
+                <Button variant="ghost" size="sm" leftIcon={<LogOut size={16} />} onClick={logout}>
+                  {t('account.logout')}
+                </Button>
               </div>
-              <Button variant="ghost" size="sm" leftIcon={<LogOut size={16} />} onClick={logout}>
-                {t('account.logout')}
-              </Button>
+              <p className="text-xs text-fog">{t('account.syncHint')}</p>
+              <div className="border-t border-border pt-4">
+                <Button
+                  variant="danger"
+                  fullWidth
+                  leftIcon={<Trash2 size={16} />}
+                  onClick={async () => {
+                    if (window.confirm(t('account.deleteAccountConfirm'))) {
+                      await deleteAccount();
+                    }
+                  }}
+                >
+                  {t('account.deleteAccount')}
+                </Button>
+                <p className="mt-2 text-xs text-fog">{t('account.deleteAccountHint')}</p>
+              </div>
             </div>
           ) : (
-            <Button variant="primary" fullWidth leftIcon={<LogIn size={18} />} onClick={login}>
-              {t('account.loginWithGoogle')}
-            </Button>
-          )}
-          {user && (
-            <p className="mt-3 text-xs text-fog">{t('account.syncHint')}</p>
+            <div className="space-y-3">
+              <Button variant="primary" fullWidth leftIcon={<LogIn size={18} />} onClick={() => login('google')}>
+                {t('account.loginWithGoogle')}
+              </Button>
+              <Button variant="apple" fullWidth leftIcon={<Apple size={18} />} onClick={() => login('apple')}>
+                {t('account.loginWithApple')}
+              </Button>
+            </div>
           )}
         </Card>
       </section>

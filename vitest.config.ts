@@ -24,6 +24,7 @@ export default defineConfig({
     include: [
       'src/**/*.{test,spec}.{ts,tsx}',
       'validation/src/**/*.{test,spec}.{ts,tsx}',
+      'functions/**/*.{test,spec}.ts',
     ],
   },
 });

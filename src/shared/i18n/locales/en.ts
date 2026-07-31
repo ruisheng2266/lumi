@@ -196,7 +196,11 @@ common: {
     account: {
       title: 'Account',
       loginWithGoogle: 'Sign in with Google',
+      loginWithApple: 'Sign in with Apple',
       logout: 'Sign out',
+      deleteAccount: 'Delete account',
+      deleteAccountConfirm: 'Delete your account? This cannot be undone and all cloud data will be permanently removed.',
+      deleteAccountHint: 'Deleting your account removes all cloud-linked data (preferences, subscription records, etc.). Local health data is unaffected.',
       syncHint: 'Sign in to sync your preferences to the cloud. Your health data stays local only.',
     },
     overview: {

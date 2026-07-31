@@ -4,6 +4,8 @@
  */
 import { create } from 'zustand';
 
+export type OAuthProvider = 'google' | 'apple';
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -18,8 +20,9 @@ interface AuthState {
   setUser: (user: AuthUser | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
-  login: () => void;
+  login: (provider?: OAuthProvider) => void;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   fetchUser: () => Promise<void>;
 }
 
@@ -31,9 +34,9 @@ export const useAuth = create<AuthState>((set) => ({
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
 
-  login: () => {
+  login: (provider = 'google') => {
     // 跳转到后端 OAuth 入口
-    window.location.href = '/auth/login';
+    window.location.href = `/auth/${provider === 'apple' ? 'apple-login' : 'login'}`;
   },
 
   logout: async () => {
@@ -44,6 +47,18 @@ export const useAuth = create<AuthState>((set) => ({
       });
     } catch {
       // ignore
+    }
+    set({ user: null });
+  },
+
+  deleteAccount: async () => {
+    try {
+      await fetch('/auth/delete-account', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch {
+      // ignore 网络错误，仍清本地态
     }
     set({ user: null });
   },

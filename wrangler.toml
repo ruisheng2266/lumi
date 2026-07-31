@@ -16,3 +16,9 @@ PUBLIC_URL = "https://lumi365.com"
 GOOGLE_CLIENT_ID = "54402477675-6a5coh6frtdtq51btf1018bl3kf6df48.apps.googleusercontent.com"
 
 # GOOGLE_CLIENT_SECRET must be set via Cloudflare Dashboard or wrangler secret
+# （以下 Apple OAuth 相关均为 secret，用 `wrangler secret put` 配置，勿提交明文）
+#   APPLE_CLIENT_ID      Service ID（如 com.lumi.app）
+#   APPLE_TEAM_ID        Apple Developer Team ID
+#   APPLE_KEY_ID         Auth Key ID（如 XXXXXXXXXX）
+#   APPLE_P8            AuthKey_XXXXXXXXX.p8 私钥内容
+#   APPLE_REDIRECT_URI  https://lumi365.com/auth/apple/callback

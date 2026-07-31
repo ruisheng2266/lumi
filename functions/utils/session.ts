@@ -3,29 +3,7 @@
  * 会话管理（cookie + D1 验证）
  */
 
-interface D1Database {
-  prepare: (sql: string) => {
-    bind: (...values: unknown[]) => {
-      first: <T = unknown>(col?: string) => Promise<T | null>;
-      run: () => Promise<{ meta: { changes: number; last_row_id: number } }>;
-      all: <T = unknown>() => Promise<T[]>;
-    };
-  };
-}
-
-interface PagesFunctionContext<E = unknown> {
-  request: Request;
-  env: E;
-  params: Record<string, string>;
-  waitUntil: (promise: Promise<unknown>) => void;
-  passThroughOnException: () => void;
-  next: (input?: Request | string) => Promise<Response>;
-  data: Record<string, unknown>;
-}
-
-type PagesFunction<E = unknown> = (
-  context: PagesFunctionContext<E>,
-) => Promise<Response> | Response;
+import type { D1Database } from './types';
 
 const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 天
 
@@ -112,6 +90,19 @@ export function getOAuthStateFromCookie(request: Request): string | null {
     .find((c) => c.startsWith('oauth_state='));
   if (!match) return null;
   return match.substring('oauth_state='.length);
+}
+
+/**
+ * 从 Cookie 解析 PKCE code_verifier（用于公开客户端校验）
+ */
+export function getPkceVerifierFromCookie(request: Request): string | null {
+  const cookieHeader = request.headers.get('cookie') || '';
+  const match = cookieHeader
+    .split(';')
+    .map((c) => c.trim())
+    .find((c) => c.startsWith('pkce_verifier='));
+  if (!match) return null;
+  return match.substring('pkce_verifier='.length);
 }
 
 /**

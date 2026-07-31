@@ -55,7 +55,10 @@ export default function AuthCallback() {
         const data = await res.json();
 
         if (!res.ok || !data.ok) {
-          setError(data.error || '登录失败，请重试');
+          // 临时展示详细错误以便排查
+          const detail = data.detail ? ` (${data.detail})` : '';
+          const ruri = data.redirect_uri ? `\nredirect_uri: ${data.redirect_uri}` : '';
+          setError(`${data.error || '登录失败'}${detail}${ruri}`);
           setLoading(false);
           return;
         }

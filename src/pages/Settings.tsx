@@ -21,6 +21,7 @@ import {
 import { today } from '../shared/lib/date';
 import { useTheme } from '../shared/theme/useTheme';
 import { APP_VERSION } from '../shared/version';
+import { SyncPanel } from '../shared/sync/SyncPanel';
 import { detectAndParse, type ImportPreview } from '../shared/lib/import';
 
 export function Settings() {
@@ -240,6 +241,9 @@ export function Settings() {
           )}
         </Card>
       </section>
+
+      {/* 云端同步（Phase 2，需登录；仅已登录用户可用，Plus 付费层 Phase 3 才做） */}
+      <SyncPanel />
 
       {/* Stats overview */}
       <section>

@@ -9,6 +9,13 @@ binding = "DB"
 database_name = "lumi-db"
 database_id = "df3085f6-b32f-4e71-9447-95c20e62fbe0"
 
+# R2 bucket for E2EE sync blobs (Phase 2)
+# 密文 blob 存 R2，sync_meta 索引仍放 D1。
+# 创建命令：npx wrangler r2 bucket create lumi-sync
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "lumi-sync"
+
 # Public environment variables (non-secret)
 # GOOGLE_CLIENT_ID is a public identifier; safe to commit
 [vars]

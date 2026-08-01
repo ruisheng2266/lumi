@@ -130,7 +130,11 @@ export async function unwrapVaultKey(
   ]);
 }
 
-/** 加密一条记录（JSON 序列化） → { blob, hmac } */
+/** 加密一条记录（JSON 序列化） → { blob, hmac }
+ *
+ *  blob 格式：base64(iv||ct)，即 IV（12 字节）和密文拼接后整体 base64。
+ *  不使用分隔符，保证 blob 是纯净的 base64 字符串（服务端可直接 atob 存 R2）。
+ */
 export async function encryptRecord(
   vaultKey: CryptoKey,
   record: unknown,
@@ -139,7 +143,11 @@ export async function encryptRecord(
   const iv = new Uint8Array(IV_BYTES);
   getCrypto().getRandomValues(iv);
   const ct = await getCrypto().subtle.encrypt({ name: 'AES-GCM', iv }, vaultKey, plaintext);
-  const blob = bytesToB64(iv) + '|' + bytesToB64(new Uint8Array(ct));
+  // 拼接 IV + 密文 → 整体 base64（无分隔符，服务端可安全 atob）
+  const combined = new Uint8Array(IV_BYTES + ct.byteLength);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(ct), IV_BYTES);
+  const blob = bytesToB64(combined);
   const digest = await getCrypto().subtle.digest('SHA-256', buf(new TextEncoder().encode(blob)));
   const hmac = Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, '0'))
@@ -147,15 +155,18 @@ export async function encryptRecord(
   return { blob, hmac };
 }
 
-/** 解密一条记录 */
+/** 解密一条记录
+ *
+ *  blob 格式：base64(iv||ct)，解码后前 IV_BYTES 字节为 IV，余下为密文。
+ */
 export async function decryptRecord<T = unknown>(
   vaultKey: CryptoKey,
   blob: string,
 ): Promise<T> {
-  const [ivB64, ctB64] = blob.split('|');
-  if (!ivB64 || !ctB64) throw new Error('blob 格式错误');
-  const iv = b64ToBytes(ivB64);
-  const ct = b64ToBytes(ctB64);
+  const combined = b64ToBytes(blob);
+  if (combined.length < IV_BYTES) throw new Error('blob 过短');
+  const iv = combined.slice(0, IV_BYTES);
+  const ct = combined.slice(IV_BYTES);
   const plaintext = await getCrypto().subtle.decrypt({ name: 'AES-GCM', iv: buf(iv) }, vaultKey, buf(ct));
   return JSON.parse(new TextDecoder().decode(plaintext)) as T;
 }

@@ -80,7 +80,11 @@ PRD §13 沿用了内部里程碑标签（V1 / V1.4 / V1.5），与 GitHub 实�
 
 > ✅ **v1.0 Phase 2（E2EE 同步）与 Phase 3（Plus 权益 + 支付）已于 2026-08-01 实现 + PayPal 沙箱全链路真机验证通过**（v0.6.0）：
 > - **Phase 2**：对称 vault 方案（AES-GCM vault 密钥 + PBKDF2 包裹 + 恢复码）+ R2 存密文 blob + D1 `sync_meta` 索引 + `/api/sync` PUT/GET/DELETE（LWW）+ `/api/recovery*` 重置口令；前端 `src/shared/sync/*`（crypto/data/Zustand store/Settings 面板）。**已真机启用同步 + push/pull 全链路（修了 6 个 bug）验证通过**。
-> - **Phase 3**：`migrations/0004_billing.sql`（`subscriptions` + `activation_codes`）+ `GET /api/entitlement`（权益计算含**祖父条款**：Phase 2 已启用同步的老用户永久保留免费同步，绝不回收红线）+ PayPal（沙箱优先：`PAYPAL_MODE=sandbox`；Orders API 一次性 Founder、Subscriptions API 订阅 Plus、`/api/billing/webhook` 用官方 `verify-webhook-signature` 幂等写库）+ 激活码生成（`ADMIN_CODE` 保护的管理端点）/兑换端点 + 前端 `src/shared/plus/*`（entitlement store + PlusPanel）+ SyncPanel 同步门控 UI（新免费用户看到升级引导，祖父/订阅用户照常）。**PayPal 未配置 secret 时相关端点返回 503**；`PAYPAL_*` secret 已由用户在 Cloudflare 配置、**沙箱闭环真机验证通过**（订阅 → 沙箱 approve → webhook `BILLING.SUBSCRIPTION.ACTIVATED` → entitlement 变 plus → PlusPanel 显示「已激活 Plus · 到期 2027/8/1」）。迁移 0004 由 CI 部署自动 apply。**上线（切 live）步骤见 `docs/GO-LIVE.md`**。
+> - **Phase 3**：`migrations/0004_billing.sql`（`subscriptions` + `activation_codes`）+ `GET /api/entitlement`（权益计算含**祖父条款**：Phase 2 已启用同步的老用户永久保留免费同步，绝不回收红线）+ PayPal（沙箱优先：`PAYPAL_MODE=sandbox`；Orders API 一次性 Founder、Subscriptions API 订阅 Plus、`/api/billing/webhook` 用官方 `verify-webhook-signature` 幂等写库）+ 激活码生成（`ADMIN_CODE` 保护的管理端点）/兑换端点 + 前端 `src/shared/plus/*`（entitlement store + PlusPanel）+ SyncPanel 同步门控 UI（新免费用户看到升级引导，祖父/订阅用户照常）。**PayPal 未配置 secret 时相关端点返回 503**；`PAYPAL_*` secret 已由用户在 Cloudflare 配置、**沙箱闭环真机验证通过**（订阅 → 沙箱 approve → webhook `BILLING.SUBSCRIPTION.ACTIVATED` → entitlement 变 plus → PlusPanel 显示「已激活 Plus · 到期 2027/8/1」；取消订阅 → `CANCELLED` → entitlement 回落 free → Founder 入口重现；Founder 一次性购买 → `capture-order` → plan=founder 永久无到期）。迁移 0004 由 CI 部署自动 apply。**上线（切 live）步骤见 `docs/GO-LIVE.md`**。
+
+> 📌 **v0.6.0 发布后已完成的收尾（同一 tag 内，已 push）**：
+> - **Founder 价格统一 $29.99**：前端显示文案（zh-CN/en）本为 `$29.99`，但 `functions/utils/billing-config.ts` 下单金额误写为 `29.00`；已统一为 `29.99`（显示与真实扣款一致）。提交 `530f27d`。
+> - **PlusPanel 去重「已激活」提示 + 区分方案名**：修复 Founder 激活后出现双行「已激活」的问题——删除捕获/轮询/兑换三处瞬时 `ok` 消息（与固定成功块重复），将固定块改为动态文案 `已激活 {plan} 💜`（Founder 显示「已激活 创始终身」、Plus 显示「已激活 Plus」），并移除未用的 `redeemSuccess` i18n key。提交 `12a27d8`。**152 测试 + `tsc -b` + `vite build` 全绿**。
 
 ### 🟣 v1.x+ — 生态扩展（混合层）
 | 方向 | 说明 |

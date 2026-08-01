@@ -76,7 +76,10 @@ async function pushAll(): Promise<void> {
     let detail = `push_failed (${res.status})`;
     try {
       const errBody = await res.json();
+      const text = JSON.stringify(errBody);
+      console.error('[sync] pushAll server error:', res.status, text);
       if (errBody.error) detail = `push_failed: ${errBody.error}`;
+      if (errBody.detail) detail += ` + detail: ${errBody.detail}`;
     } catch { /* ignore */ }
     throw new Error(detail);
   }
@@ -89,8 +92,18 @@ async function pullAll(): Promise<void> {
     let detail = `pull_failed (${res.status})`;
     try {
       const errBody = await res.json();
+      const text = JSON.stringify(errBody);
+      console.error('[sync] pullAll server error:', res.status, text);
       if (errBody.error) detail = `pull_failed: ${errBody.error}`;
-    } catch { /* ignore */ }
+      if (errBody.detail) detail += ` + detail: ${errBody.detail}`;
+    } catch {
+      // 非 JSON 响应（可能是 Cloudflare HTML 错误页）
+      try {
+        const html = await res.text();
+        console.error('[sync] pullAll non-JSON response:', res.status, html.slice(0, 300));
+        detail += ` (non-JSON: ${html.slice(0, 100)})`;
+      } catch { /* ignore */ }
+    }
     throw new Error(detail);
   }
   const data = await res.json();

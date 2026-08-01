@@ -199,12 +199,22 @@ export const useSync = create<SyncState>((set) => ({
       vaultKey = await unwrapVaultKey(data.wrappedVaultKey, passKey);
 
       set({ status: 'ready', loading: false, lastSyncAt: Date.now() });
-      await pullAll();
-      await pushAll();
+      // 同步步骤单独处理错误，不与口令验证混淆
+      try {
+        await pullAll();
+        await pushAll();
+        set({ lastSyncAt: Date.now() });
+      } catch (syncErr) {
+        // 同步失败不影响解锁状态，仅显示警告
+        set({ error: (syncErr as Error).message || 'sync_after_unlock_failed' });
+      }
     } catch (e) {
       vaultKey = null;
       vaultSalt = null;
-      set({ loading: false, error: 'wrong_passphrase' });
+      const msg = (e as Error).message || 'unknown';
+      // 区分真正的口令错误和其他异常（格式/网络/服务端）
+      if (msg === '包裹格式错误') set({ loading: false, error: 'invalid_vault_format' });
+      else set({ loading: false, error: `wrong_passphrase: ${msg}` });
     }
   },
 

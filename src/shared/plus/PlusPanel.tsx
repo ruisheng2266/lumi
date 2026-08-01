@@ -82,7 +82,6 @@ export function PlusPanel() {
       await refresh();
       setMode('idle');
       setPendingOrderId(null);
-      setMessage({ kind: 'ok', text: t('plus.activated') });
     } catch (e) {
       setMessage({ kind: 'err', text: errText((e as Error).message) });
     } finally {
@@ -115,7 +114,6 @@ export function PlusPanel() {
         const cur = useEntitlementStore.getState().plan;
         if (cur === 'plus' || cur === 'founder') {
           setMode('idle');
-          setMessage({ kind: 'ok', text: t('plus.activated') });
           return;
         }
         await new Promise((r) => setTimeout(r, 2000));
@@ -147,7 +145,6 @@ export function PlusPanel() {
       }
       await refresh();
       setCode('');
-      setMessage({ kind: 'ok', text: t('plus.redeemSuccess') });
     } catch (e) {
       setMessage({ kind: 'err', text: errText((e as Error).message) });
     } finally {
@@ -288,7 +285,7 @@ export function PlusPanel() {
         ) : (
           <div className="flex items-start gap-2 rounded-lg bg-lavender-50 p-3 text-sm text-lavender-700">
             <Check size={16} className="mt-0.5 shrink-0" />
-            <span>{t('plus.activated')}</span>
+            <span>{t('plus.activatedPlan', { plan: planLabel })}</span>
           </div>
         )}
 

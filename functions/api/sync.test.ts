@@ -86,6 +86,11 @@ describe('Phase 2 sync endpoints', () => {
       last_login_at: 1,
     });
     db.tables.sessions.push({ id: SESSION_ID, user_id: USER_ID, expires_at: Date.now() + 1e9, created_at: 1 });
+    // Phase 3：同步改为 Plus 专属，这些测试以"已订阅（entitled）用户"身份验证同步机制本身，
+    // 权益门控逻辑由 billing.test.ts 单独覆盖。
+    db.tables.subscriptions.push({
+      user_id: USER_ID, plan: 'plus', provider: 'paypal', provider_sub_id: null, expires_at: null, created_at: 1,
+    });
     bucket = makeBucket();
   });
 

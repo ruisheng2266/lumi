@@ -13,6 +13,7 @@
 import type { PagesFunctionContext, D1Database, R2Bucket } from '../utils/types';
 import { getUserId } from '../utils/auth';
 import { getKeyBackup, upsertKeyBackup, replaceRecoveryCodes } from '../utils/sync-db';
+import { getSyncEntitlement } from '../utils/subscription-db';
 
 interface Env {
   DB: D1Database;
@@ -56,6 +57,13 @@ export const onRequestPost: Handler = async (context) => {
   try {
     const userId = await getUserId(context.request, context.env.DB);
     if (!userId) return json({ error: 'unauthorized' }, { status: 401 });
+
+    // Phase 3 门控：启用同步需具备同步权益（已订阅 或 祖父老用户）
+    // 否则新免费用户可通过 POST 写入 key_backup 而被错误祖父化、永久白嫖同步
+    const ent = await getSyncEntitlement(context.env.DB, userId);
+    if (!ent.syncEntitled) {
+      return json({ error: 'upgrade_required' }, { status: 402 });
+    }
 
     let body: {
       wrappedVaultKey?: string;

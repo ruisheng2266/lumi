@@ -13,6 +13,7 @@ export function createFakeD1(): FakeD1 {
     users: [],
     sessions: [],
     subscriptions: [],
+    activation_codes: [],
     sync_meta: [],
     key_backup: [],
     recovery_codes: [],
@@ -141,6 +142,42 @@ export function createFakeD1(): FakeD1 {
     if (/DELETE FROM key_backup WHERE user_id = \?/.test(sql)) return delByUser('key_backup'), [];
     if (/DELETE FROM sync_meta WHERE user_id = \?/.test(sql)) return delByUser('sync_meta'), [];
     if (/DELETE FROM subscriptions WHERE user_id = \?/.test(sql)) return delByUser('subscriptions'), [];
+    // Phase 3：subscription upsert（先删后插）
+    if (/INSERT INTO subscriptions/.test(sql)) {
+      const [uid, plan, provider, psub, expires, created] = vals as [
+        string, string, string | null, string | null, number | null, number,
+      ];
+      tables.subscriptions = tables.subscriptions.filter((r) => r.user_id !== uid);
+      tables.subscriptions.push({
+        user_id: uid, plan, provider, provider_sub_id: psub, expires_at: expires, created_at: created,
+      });
+      return [];
+    }
+    // Phase 3：subscription 查询（权益计算用）
+    if (/SELECT plan, provider, provider_sub_id, expires_at, created_at FROM subscriptions WHERE user_id = \?/.test(sql))
+      return tables.subscriptions.filter((r) => r.user_id === vals[0]);
+    // Phase 3：activation code 查询（按 hash）
+    if (/SELECT code_hash, plan, expires_at, used_by, created_at FROM activation_codes WHERE code_hash = \?/.test(sql)) {
+      const [hash] = vals as [string];
+      return tables.activation_codes.filter((r) => r.code_hash === hash);
+    }
+    // Phase 3：activation code 批量插入（INSERT OR IGNORE）
+    if (/INSERT OR IGNORE INTO activation_codes/.test(sql)) {
+      const [hash, plan, expires, created] = vals as [string, string, number | null, number];
+      if (!tables.activation_codes.find((r) => r.code_hash === hash)) {
+        tables.activation_codes.push({
+          code_hash: hash, plan, expires_at: expires, used_by: null, created_at: created,
+        });
+      }
+      return [];
+    }
+    // Phase 3：redeem 标记 used_by
+    if (/UPDATE activation_codes SET used_by = \? WHERE code_hash = \? AND used_by IS NULL/.test(sql)) {
+      const [uid, hash] = vals as [string, string];
+      const r = tables.activation_codes.find((x) => x.code_hash === hash && x.used_by == null);
+      if (r) r.used_by = uid;
+      return [];
+    }
     if (/DELETE FROM users WHERE id = \?/.test(sql)) {
       tables.users = tables.users.filter((u) => u.id !== vals[0]);
       return [];

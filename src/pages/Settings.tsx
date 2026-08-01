@@ -22,6 +22,7 @@ import { today } from '../shared/lib/date';
 import { useTheme } from '../shared/theme/useTheme';
 import { APP_VERSION } from '../shared/version';
 import { SyncPanel } from '../shared/sync/SyncPanel';
+import { PlusPanel } from '../shared/plus/PlusPanel';
 import { detectAndParse, type ImportPreview } from '../shared/lib/import';
 
 export function Settings() {
@@ -242,7 +243,10 @@ export function Settings() {
         </Card>
       </section>
 
-      {/* 云端同步（Phase 2，需登录；仅已登录用户可用，Plus 付费层 Phase 3 才做） */}
+      {/* Lumi Plus（Phase 3：方案展示 + 升级 / 激活码兑换） */}
+      <PlusPanel />
+
+      {/* 云端同步（Phase 2；Phase 3 起同步改为 Plus 专属，祖父老用户保留免费同步） */}
       <SyncPanel />
 
       {/* Stats overview */}

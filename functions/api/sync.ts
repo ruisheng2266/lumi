@@ -12,6 +12,7 @@
 import type { PagesFunctionContext, D1Database, R2Bucket, SyncRecordInput } from '../utils/types';
 import { getUserId } from '../utils/auth';
 import { getSyncMeta, upsertSyncMeta, listSyncMeta } from '../utils/sync-db';
+import { getSyncEntitlement } from '../utils/subscription-db';
 
 interface Env {
   DB: D1Database;
@@ -54,6 +55,12 @@ export const onRequestPut: Handler = async (context) => {
   try {
     const userId = await getUserId(context.request, context.env.DB);
     if (!userId) return json({ error: 'unauthorized' }, { status: 401 });
+
+    // Phase 3 门控：同步改为 Plus 专属（祖父老用户仍可用）
+    const ent = await getSyncEntitlement(context.env.DB, userId);
+    if (!ent.syncEntitled) {
+      return json({ error: 'upgrade_required' }, { status: 402 });
+    }
 
     let body: { records?: SyncRecordInput[] };
     try {
@@ -116,6 +123,12 @@ export const onRequestGet: Handler = async (context) => {
   try {
     const userId = await getUserId(context.request, context.env.DB);
     if (!userId) return json({ error: 'unauthorized' }, { status: 401 });
+
+    // Phase 3 门控：同步改为 Plus 专属（祖父老用户仍可用）
+    const ent = await getSyncEntitlement(context.env.DB, userId);
+    if (!ent.syncEntitled) {
+      return json({ error: 'upgrade_required' }, { status: 402 });
+    }
 
     const sinceParam = new URL(context.request.url).searchParams.get('since');
     const since = sinceParam ? Number(sinceParam) : undefined;
@@ -186,6 +199,12 @@ export const onRequestDelete: Handler = async (context) => {
   try {
     const userId = await getUserId(context.request, context.env.DB);
     if (!userId) return json({ error: 'unauthorized' }, { status: 401 });
+
+    // Phase 3 门控：同步改为 Plus 专属（祖父老用户仍可用）
+    const ent = await getSyncEntitlement(context.env.DB, userId);
+    if (!ent.syncEntitled) {
+      return json({ error: 'upgrade_required' }, { status: 402 });
+    }
 
     const recordId = new URL(context.request.url).searchParams.get('recordId');
     if (!recordId) return json({ error: 'missing_record_id' }, { status: 400 });

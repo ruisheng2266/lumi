@@ -9,6 +9,7 @@ import { Card, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { useSync } from './store';
 import { useAuth } from '../auth/store';
+import { useEntitlement } from '../plus/store';
 
 function formatTime(ts: number): string {
   try {
@@ -35,6 +36,8 @@ export function SyncPanel() {
   const resetPassphrase = useSync((s) => s.resetPassphrase);
   const clearRecoveryCodeDisplay = useSync((s) => s.clearRecoveryCodeDisplay);
   const clearSession = useSync((s) => s.clearSession);
+
+  const { syncEntitled } = useEntitlement();
 
   const [passphrase, setPassphrase] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -94,6 +97,23 @@ export function SyncPanel() {
   }
 
   if (status === 'disabled') {
+    // Phase 3：同步改为 Plus 专属（祖父老用户因已存在 key_backup，syncEntitled 仍为 true）
+    if (!syncEntitled) {
+      return (
+        <section>
+          <CardTitle>{t('sync.title')}</CardTitle>
+          <Card className="space-y-4">
+            <div className="flex items-start gap-3">
+              <Lock size={18} className="text-lavender-500 mt-0.5 shrink-0" />
+              <p className="text-sm text-fog leading-relaxed">{t('plus.syncLockedDesc')}</p>
+            </div>
+            <div className="rounded-lg bg-lavender-50 p-3">
+              <p className="text-xs text-lavender-700 leading-relaxed">{t('plus.syncLockedHint')}</p>
+            </div>
+          </Card>
+        </section>
+      );
+    }
     return (
       <section>
         <CardTitle>{t('sync.title')}</CardTitle>

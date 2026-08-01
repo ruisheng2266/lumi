@@ -2,7 +2,7 @@
 
 > 文档版本：v1.0
 > 日期：2026-07-31
-> 状态：v0.5.0 已发布（含导航与对比度收尾）；v1.0 Phase 1（账号 MVP / Google 登录）已上线验证（2026-07-31），Phase 2-4（同步/支付/共享/AI）待做，待定项见末尾
+> 状态：v0.5.0 已发布（含导航与对比度收尾）；v1.0 Phase 1（账号 MVP / Google 登录）已上线验证（2026-07-31）；**Phase 2（E2EE 同步）与 Phase 3（Plus 权益 + 支付）已于 2026-07-31 实现**；Phase 4（伴侣共享 / AI）待做，待定项见末尾
 > 关联文档：`docs/MVP-PRD.md`（PRD）、`docs/PRICING-STRATEGY.md`（定价策略）
 
 ---
@@ -18,7 +18,7 @@ PRD §13 沿用了内部里程碑标签（V1 / V1.4 / V1.5），与 GitHub 实�
 | V1.5（收尾） | **v0.3.1** | i18n `translation` 包装层修复（hotfix，消除原始 key 显示） |
 | v0.4 / v0.5 | **v0.4.0–v0.5.0** | 信任加固（竞品导入/特殊场景/不规律诚实预测）、a11y 实测 + 医生报告 PDF、多年趋势、围绝经期、BBT 备孕、健康科普（ja/ko/zh-TW 经用户决定移除） |
 
-> ⚠️ **v1.0 Phase 1 账号 MVP（Google OAuth + Cloudflare D1）已于 2026-07-31 上线验证**（登录 / 登出 / 注销 / 删除后重注册全链路通过）。但 **Plus 后端能力（E2EE 同步 / 支付 / 伴侣共享 / AI）尚未实现**——它是 v1.0「Plus 基础设施」的下一步，现仅完成身份前置。
+> ⚠️ **v1.0 Phase 1 账号 MVP（Google OAuth + Cloudflare D1）已于 2026-07-31 上线验证**（登录 / 登出 / 注销 / 删除后重注册全链路通过）。**Phase 2（E2EE 同步）与 Phase 3（Plus 权益 + 支付）已于 2026-07-31 实现**：同步为端到端加密跨设备同步；Plus 后端含 subscriptions/activation_codes 表、entitlement 权益计算（祖父条款保留 Phase 2 老用户免费同步）、PayPal（沙箱优先）与激活码。Phase 4（伴侣共享 / AI）仍待做。
 >
 > 路线图统一口径：**v0.x = 纯本地功能（Free 全免费）；v1.0 = 引入后端 / 付费层（Plus）**。
 
@@ -73,9 +73,14 @@ PRD §13 沿用了内部里程碑标签（V1 / V1.4 / V1.5），与 GitHub 实�
 | 功能 | 说明 | 层级 |
 | --- | --- | --- |
 | **① 账号系统落地** | ✅ 已上线：Google OAuth + Cloudflare D1，仅承载身份与偏好（SPA OAuth 流程 + PKCE + 注销 + 删除后重注册）| Plus 前置 |
-| **② 端到端加密跨设备同步** | 健康数据 E2EE 后在多设备间同步（仍不进明文云端） | **Plus** |
+| **② 端到端加密跨设备同步** | ✅ 已实现（2026-07-31）：对称 vault 方案 + R2 密文 + D1 sync_meta 索引 + 恢复码，全链路真机验证通过 | **Plus** |
 | **③ 伴侣加密共享** | 授权伴侣只读/有限查看，加密共享链接 | **Plus** |
 | **④ AI 洞察增强** | 可选端侧模型或可选云增强，解释"为什么"更深入 | **Plus** |
+| **⑤ Plus 权益 + 支付** | ✅ 已实现（2026-07-31）：subscriptions/activation_codes 表 + entitlement 权益门控（祖父条款）+ PayPal（沙箱优先：Orders/Subscriptions/webhook 幂等）+ 激活码生成/兑换 + 前端 Plus 面板与同步门控 UI | **Plus** |
+
+> ✅ **v1.0 Phase 2（E2EE 同步）与 Phase 3（Plus 权益 + 支付）已于 2026-07-31 实现**：
+> - **Phase 2**：对称 vault 方案（AES-GCM vault 密钥 + PBKDF2 包裹 + 恢复码）+ R2 存密文 blob + D1 `sync_meta` 索引 + `/api/sync` PUT/GET/DELETE（LWW）+ `/api/recovery*` 重置口令；前端 `src/shared/sync/*`（crypto/data/Zustand store/Settings 面板）。
+> - **Phase 3**：`migrations/0004_billing.sql`（`subscriptions` + `activation_codes`）+ `GET /api/entitlement`（权益计算含**祖父条款**：Phase 2 已启用同步的老用户永久保留免费同步，绝不回收红线）+ PayPal（沙箱优先：`PAYPAL_MODE=sandbox`；Orders API 一次性 Founder、Subscriptions API 订阅 Plus、`/api/billing/webhook` 用官方 `verify-webhook-signature` 幂等写库）+ 激活码生成（`ADMIN_CODE` 保护的管理端点）/兑换端点 + 前端 `src/shared/plus/*`（entitlement store + PlusPanel）+ SyncPanel 同步门控 UI（新免费用户看到升级引导，祖父/订阅用户照常）。**PayPal 未配置 secret 时相关端点返回 503**；上线前需在 Cloudflare 设 `PAYPAL_*` secret（含 `PAYPAL_PLUS_PLAN_ID` / `PAYPAL_WEBHOOK_ID`），迁移 0004 由 CI 部署自动 apply。
 
 ### 🟣 v1.x+ — 生态扩展（混合层）
 | 方向 | 说明 |

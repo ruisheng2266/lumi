@@ -8,7 +8,8 @@ export interface D1Database {
     bind: (...values: unknown[]) => {
       first: <T = unknown>(col?: string) => Promise<T | null>;
       run: () => Promise<{ meta: { changes: number; last_row_id: number } }>;
-      all: <T = unknown>() => Promise<T[]>;
+      // 真实 Cloudflare D1 .all() 返回 { results: T[], success, meta }，不是直接 T[]
+      all: <T = unknown>() => Promise<{ results: T[]; success: boolean; meta?: Record<string, unknown> }>;
     };
   };
 }

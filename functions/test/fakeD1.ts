@@ -160,7 +160,7 @@ export function createFakeD1(): FakeD1 {
         if (row && col) return (row as Record<string, unknown>)[col] ?? null;
         return row as unknown;
       },
-      all: async () => execute(sql, vals),
+      all: async () => ({ results: execute(sql, vals), success: true }),
     }),
   });
 

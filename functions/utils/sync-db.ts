@@ -64,12 +64,13 @@ export async function getRecoveryCodes(
   db: D1Database,
   userId: string,
 ): Promise<RecoveryCodeRow[]> {
-  return await db
+  const result = await db
     .prepare(
       'SELECT code_hash, wrapped_vault_key, used_at FROM recovery_codes WHERE user_id = ?',
     )
     .bind(userId)
     .all<RecoveryCodeRow>();
+  return result.results ?? [];
 }
 
 /** 用新的一组恢复码整体替换（重新生成时调用） */
@@ -154,19 +155,21 @@ export async function listSyncMeta(
   since?: number,
 ): Promise<SyncMetaRow[]> {
   if (since != null) {
-    return await db
+    const result = await db
       .prepare(
         'SELECT record_id, updated_at, blob_ref, hmac FROM sync_meta WHERE user_id = ? AND updated_at > ?',
       )
       .bind(userId, since)
       .all<SyncMetaRow>();
+    return result.results ?? [];
   }
-  return await db
+  const result = await db
     .prepare(
       'SELECT record_id, updated_at, blob_ref, hmac FROM sync_meta WHERE user_id = ?',
     )
     .bind(userId)
     .all<SyncMetaRow>();
+  return result.results ?? [];
 }
 
 /** 删除 sync_meta 行（仅当记录确实从 R2 移除且不再需要 tombstone 时使用） */

@@ -154,7 +154,14 @@ export const useSync = create<SyncState>((set) => ({
           recoveryCodes,
         }),
       });
-      if (!res.ok) throw new Error('setup_failed');
+      if (!res.ok) {
+        let detail = `setup_failed (${res.status})`;
+        try {
+          const errBody = await res.json();
+          if (errBody.error) detail = `setup_failed: ${errBody.error}`;
+        } catch { /* ignore parse failure */ }
+        throw new Error(detail);
+      }
 
       set({ status: 'ready', loading: false, recoveryCodes: codes, lastSyncAt: Date.now() });
       await pushAll();

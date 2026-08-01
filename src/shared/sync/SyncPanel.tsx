@@ -118,7 +118,7 @@ export function SyncPanel() {
               className="w-full rounded-lg border border-border bg-surface px-4 py-3 outline-none focus:ring-2 focus:ring-lavender-300"
             />
           </div>
-          {error && <p className="text-xs text-coral-500">{error}</p>}
+          {error && <p className="text-xs text-coral-500 break-words">{error}</p>}
           <Button
             variant="primary"
             fullWidth
@@ -146,7 +146,7 @@ export function SyncPanel() {
             placeholder={t('sync.passphrasePlaceholder')}
             className="w-full rounded-lg border border-border bg-surface px-4 py-3 outline-none focus:ring-2 focus:ring-lavender-300"
           />
-          {error && <p className="text-xs text-coral-500">{error}</p>}
+          {error && <p className="text-xs text-coral-500 break-words">{error}</p>}
           <Button
             variant="primary"
             fullWidth

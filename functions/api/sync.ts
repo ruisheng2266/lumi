@@ -119,7 +119,13 @@ export const onRequestGet: Handler = async (context) => {
 
     const sinceParam = new URL(context.request.url).searchParams.get('since');
     const since = sinceParam ? Number(sinceParam) : undefined;
-    const metas = await listSyncMeta(context.env.DB, userId, since);
+
+    let metas;
+    try {
+      metas = await listSyncMeta(context.env.DB, userId, since);
+    } catch (dbErr) {
+      throw new Error(`listSyncMeta failed: ${dbErr instanceof Error ? dbErr.message : dbErr}`);
+    }
 
     const records: Array<{
       recordId: string;
@@ -139,9 +145,28 @@ export const onRequestGet: Handler = async (context) => {
         });
         continue;
       }
-      const obj = await context.env.BUCKET.get(meta.blob_ref);
-      if (!obj) continue; // 孤立索引，跳过
-      const buf = await obj.arrayBuffer();
+      if (!meta.blob_ref) {
+        records.push({
+          recordId: meta.record_id,
+          updatedAt: meta.updated_at,
+          hmac: meta.hmac || '',
+          blob: '',
+        });
+        continue; // 孤立索引（无 blob_ref），跳过 R2 读取
+      }
+      let obj;
+      try {
+        obj = await context.env.BUCKET.get(meta.blob_ref);
+      } catch (r2Err) {
+        throw new Error(`R2.get(${meta.blob_ref}) failed: ${r2Err instanceof Error ? r2Err.message : r2Err}`);
+      }
+      if (!obj) continue; // 对象不存在，跳过
+      let buf: ArrayBuffer;
+      try {
+        buf = await obj.arrayBuffer();
+      } catch (bufErr) {
+        throw new Error(`arrayBuffer() failed for ${meta.blob_ref}: ${bufErr instanceof Error ? bufErr.message : bufErr}`);
+      }
       records.push({
         recordId: meta.record_id,
         updatedAt: meta.updated_at,

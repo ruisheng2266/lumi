@@ -8,7 +8,7 @@ import type { Plan } from './subscription-db';
 /** 海外以 USD 计价（PayPal）。价格可在此集中调整。 */
 export const PRICES = {
   /** 创始终身（$ 一次性） */
-  founderUsd: '29.00',
+  founderUsd: '29.99',
   /** Plus 年付（$/年） */
   plusUsd: '19.99',
 } as const;

@@ -2,7 +2,7 @@
 
 > 文档版本：v1.0
 > 日期：2026-07-31
-> 状态：v0.5.0 已发布（含导航与对比度收尾）；v1.0 Phase 1（账号 MVP / Google 登录）已上线验证（2026-07-31）；**Phase 2（E2EE 同步）与 Phase 3（Plus 权益 + 支付）已于 2026-07-31 实现**；Phase 4（伴侣共享 / AI）待做，待定项见末尾
+> 状态：v0.5.0 已发布（含导航与对比度收尾）；v1.0 Phase 1（账号 MVP / Google 登录）已上线验证（2026-07-31）；**Phase 2（E2EE 同步）与 Phase 3（Plus 权益 + 支付）已于 2026-08-01 实现 + PayPal 沙箱全链路真机验证通过**（v0.6.0）；Phase 4（伴侣共享 / AI）待做，待定项见末尾
 > 关联文档：`docs/MVP-PRD.md`（PRD）、`docs/PRICING-STRATEGY.md`（定价策略）
 
 ---
@@ -76,11 +76,11 @@ PRD §13 沿用了内部里程碑标签（V1 / V1.4 / V1.5），与 GitHub 实�
 | **② 端到端加密跨设备同步** | ✅ 已实现（2026-07-31）：对称 vault 方案 + R2 密文 + D1 sync_meta 索引 + 恢复码，全链路真机验证通过 | **Plus** |
 | **③ 伴侣加密共享** | 授权伴侣只读/有限查看，加密共享链接 | **Plus** |
 | **④ AI 洞察增强** | 可选端侧模型或可选云增强，解释"为什么"更深入 | **Plus** |
-| **⑤ Plus 权益 + 支付** | ✅ 已实现（2026-07-31）：subscriptions/activation_codes 表 + entitlement 权益门控（祖父条款）+ PayPal（沙箱优先：Orders/Subscriptions/webhook 幂等）+ 激活码生成/兑换 + 前端 Plus 面板与同步门控 UI | **Plus** |
+| **⑤ Plus 权益 + 支付** | ✅ 已实现 + **PayPal 沙箱真机验证通过**（2026-08-01）：subscriptions/activation_codes 表 + entitlement 权益门控（祖父条款）+ PayPal（沙箱优先：Orders/Subscriptions/webhook 幂等）+ 激活码生成/兑换 + 前端 Plus 面板与同步门控 UI | **Plus** |
 
-> ✅ **v1.0 Phase 2（E2EE 同步）与 Phase 3（Plus 权益 + 支付）已于 2026-07-31 实现**：
-> - **Phase 2**：对称 vault 方案（AES-GCM vault 密钥 + PBKDF2 包裹 + 恢复码）+ R2 存密文 blob + D1 `sync_meta` 索引 + `/api/sync` PUT/GET/DELETE（LWW）+ `/api/recovery*` 重置口令；前端 `src/shared/sync/*`（crypto/data/Zustand store/Settings 面板）。
-> - **Phase 3**：`migrations/0004_billing.sql`（`subscriptions` + `activation_codes`）+ `GET /api/entitlement`（权益计算含**祖父条款**：Phase 2 已启用同步的老用户永久保留免费同步，绝不回收红线）+ PayPal（沙箱优先：`PAYPAL_MODE=sandbox`；Orders API 一次性 Founder、Subscriptions API 订阅 Plus、`/api/billing/webhook` 用官方 `verify-webhook-signature` 幂等写库）+ 激活码生成（`ADMIN_CODE` 保护的管理端点）/兑换端点 + 前端 `src/shared/plus/*`（entitlement store + PlusPanel）+ SyncPanel 同步门控 UI（新免费用户看到升级引导，祖父/订阅用户照常）。**PayPal 未配置 secret 时相关端点返回 503**；上线前需在 Cloudflare 设 `PAYPAL_*` secret（含 `PAYPAL_PLUS_PLAN_ID` / `PAYPAL_WEBHOOK_ID`），迁移 0004 由 CI 部署自动 apply。
+> ✅ **v1.0 Phase 2（E2EE 同步）与 Phase 3（Plus 权益 + 支付）已于 2026-08-01 实现 + PayPal 沙箱全链路真机验证通过**（v0.6.0）：
+> - **Phase 2**：对称 vault 方案（AES-GCM vault 密钥 + PBKDF2 包裹 + 恢复码）+ R2 存密文 blob + D1 `sync_meta` 索引 + `/api/sync` PUT/GET/DELETE（LWW）+ `/api/recovery*` 重置口令；前端 `src/shared/sync/*`（crypto/data/Zustand store/Settings 面板）。**已真机启用同步 + push/pull 全链路（修了 6 个 bug）验证通过**。
+> - **Phase 3**：`migrations/0004_billing.sql`（`subscriptions` + `activation_codes`）+ `GET /api/entitlement`（权益计算含**祖父条款**：Phase 2 已启用同步的老用户永久保留免费同步，绝不回收红线）+ PayPal（沙箱优先：`PAYPAL_MODE=sandbox`；Orders API 一次性 Founder、Subscriptions API 订阅 Plus、`/api/billing/webhook` 用官方 `verify-webhook-signature` 幂等写库）+ 激活码生成（`ADMIN_CODE` 保护的管理端点）/兑换端点 + 前端 `src/shared/plus/*`（entitlement store + PlusPanel）+ SyncPanel 同步门控 UI（新免费用户看到升级引导，祖父/订阅用户照常）。**PayPal 未配置 secret 时相关端点返回 503**；`PAYPAL_*` secret 已由用户在 Cloudflare 配置、**沙箱闭环真机验证通过**（订阅 → 沙箱 approve → webhook `BILLING.SUBSCRIPTION.ACTIVATED` → entitlement 变 plus → PlusPanel 显示「已激活 Plus · 到期 2027/8/1」）。迁移 0004 由 CI 部署自动 apply。**上线（切 live）步骤见 `docs/GO-LIVE.md`**。
 
 ### 🟣 v1.x+ — 生态扩展（混合层）
 | 方向 | 说明 |

@@ -78,8 +78,8 @@ export const onRequestPost: Handler = async (context) => {
       return json({ error: 'invalid_body' }, { status: 400 });
     }
 
-    // 基本格式校验
-    if (!/^[A-Za-z0-9+/=]+$/.test(wrappedVaultKey) || !/^[A-Za-z0-9+/=]+$/.test(salt)) {
+  // 基本格式校验：wrappedVaultKey 格式为 base64(iv)|base64(ct)，含管道符
+  if (!/^[A-Za-z0-9+/=|]+$/.test(wrappedVaultKey) || !/^[A-Za-z0-9+/=]+$/.test(salt)) {
       return json({ error: 'invalid_encoding' }, { status: 400 });
     }
     for (const c of recoveryCodes) {

@@ -102,7 +102,9 @@ export function createFakeD1(): FakeD1 {
       return [];
     }
     if (/INSERT INTO key_backup/.test(sql)) {
-      const [uid, wvk, salt, created] = vals as [string, string, string, number];
+      // 对称 vault 方案：5 列 (user_id, wrapped_private_key, wrapped_vault_key, salt, created_at)
+      // wrapped_private_key 是 NOT NULL 遗留列（Apple 未启用），传空字符串
+      const [uid, _wpk, wvk, salt, created] = vals as [string, string, string, string, number];
       tables.key_backup.push({ user_id: uid, wrapped_vault_key: wvk, salt, created_at: created });
       return [];
     }

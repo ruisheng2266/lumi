@@ -42,7 +42,9 @@ export async function getKeyBackup(
   return row ?? null;
 }
 
-/** 写入 / 覆盖 key_backup（upsert） */
+/** 写入 / 覆盖 key_backup（upsert）
+ *  注意：key_backup.wrapped_private_key 是 NOT NULL（原 Apple 方案遗留），
+ *  对称 vault 方案不使用它，但 INSERT 必须传值以避免约束违反。 */
 export async function upsertKeyBackup(
   db: D1Database,
   userId: string,
@@ -51,9 +53,9 @@ export async function upsertKeyBackup(
   await db.prepare('DELETE FROM key_backup WHERE user_id = ?').bind(userId).run();
   await db
     .prepare(
-      'INSERT INTO key_backup (user_id, wrapped_vault_key, salt, created_at) VALUES (?, ?, ?, ?)',
+      'INSERT INTO key_backup (user_id, wrapped_private_key, wrapped_vault_key, salt, created_at) VALUES (?, ?, ?, ?, ?)',
     )
-    .bind(userId, data.wrapped_vault_key, data.salt, Date.now())
+    .bind(userId, '', data.wrapped_vault_key, data.salt, Date.now())
     .run();
 }
 

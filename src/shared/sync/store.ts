@@ -72,13 +72,27 @@ async function pushAll(): Promise<void> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ records }),
   });
-  if (!res.ok) throw new Error('push_failed');
+  if (!res.ok) {
+    let detail = `push_failed (${res.status})`;
+    try {
+      const errBody = await res.json();
+      if (errBody.error) detail = `push_failed: ${errBody.error}`;
+    } catch { /* ignore */ }
+    throw new Error(detail);
+  }
 }
 
 async function pullAll(): Promise<void> {
   if (!vaultKey) return;
   const res = await fetch('/api/sync', { credentials: 'include' });
-  if (!res.ok) throw new Error('pull_failed');
+  if (!res.ok) {
+    let detail = `pull_failed (${res.status})`;
+    try {
+      const errBody = await res.json();
+      if (errBody.error) detail = `pull_failed: ${errBody.error}`;
+    } catch { /* ignore */ }
+    throw new Error(detail);
+  }
   const data = await res.json();
   const records = data.records ?? [];
   const decrypted = await decryptRemoteRecords(vaultKey, records);
@@ -163,8 +177,10 @@ export const useSync = create<SyncState>((set) => ({
         throw new Error(detail);
       }
 
-      set({ status: 'ready', loading: false, recoveryCodes: codes, lastSyncAt: Date.now() });
+      // push 成功后才设为 ready（push 失败保持 error 状态）
       await pushAll();
+      installHooks();
+      set({ status: 'ready', loading: false, recoveryCodes: codes, lastSyncAt: Date.now() });
     } catch (e) {
       vaultKey = null;
       vaultSalt = null;

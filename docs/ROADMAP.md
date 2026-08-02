@@ -86,6 +86,12 @@ PRD §13 沿用了内部里程碑标签（V1 / V1.4 / V1.5），与 GitHub 实�
 > - **Founder 价格统一 $29.99**：前端显示文案（zh-CN/en）本为 `$29.99`，但 `functions/utils/billing-config.ts` 下单金额误写为 `29.00`；已统一为 `29.99`（显示与真实扣款一致）。提交 `530f27d`。
 > - **PlusPanel 去重「已激活」提示 + 区分方案名**：修复 Founder 激活后出现双行「已激活」的问题——删除捕获/轮询/兑换三处瞬时 `ok` 消息（与固定成功块重复），将固定块改为动态文案 `已激活 {plan} 💜`（Founder 显示「已激活 创始终身」、Plus 显示「已激活 Plus」），并移除未用的 `redeemSuccess` i18n key。提交 `12a27d8`。**152 测试 + `tsc -b` + `vite build` 全绿**。
 
+> 📌 **v0.7.0 发布后已完成的收尾（同一 tag 内，已 push，2026-08-02）**：
+> - **匿名使用统计（解决"免费无登录无法度量留存"痛点，仍守住隐私定位）**：新增 `src/shared/analytics/index.ts`（设备级匿名 ID 存 localStorage、队列 + `sendBeacon` 上报、可在设置关闭、node/jsdom 安全）、后端 `functions/api/analytics.ts`（POST 匿名写入，**不登录、不存 IP、不读周期内容**、入参校验）、迁移 `0005_analytics.sql`（`analytics_events` 表 + 索引，CI 部署自动 apply）。埋点：`app_open`（启动）+ `period_added` / `log_added`（录入组件）。可算 DAU/MAU、D1/D7/D30 留存、功能采用率，**全程零 PII**。
+> - **本地周期提醒（召回主力，零服务器）**：新增 `src/shared/notifications.ts`（基于 `predictCycle.nextPeriodStart` 提前 2 天、应用时 best-effort 弹 Notification；明确 Web 无法后台精确排程，可靠定时推送留作后续 Push API 增强）+ `src/shared/ui/Switch.tsx` 开关组件 + Settings「提醒与统计」分区（通知开关 + 匿名统计开关，均尊重权限/可关）。
+> - **设计原则**：两套机制都不强制登录、不碰基础健康功能付费墙、不接入广告——与定价红线一致；匿名统计明确"可随时关闭"，信任优先。
+> - 提交 `d51a9a3`（16 文件 +442/-8）。**`tsc -b` + `tsc -p tsconfig.functions.json` + `vite build` 全绿，152 测试通过**。
+
 ### 🟣 v1.x+ — 生态扩展（混合层）
 | 方向 | 说明 |
 | --- | --- |

@@ -22,7 +22,7 @@ bucket_name = "lumi-sync"
 PUBLIC_URL = "https://lumi365.com"
 GOOGLE_CLIENT_ID = "54402477675-6a5coh6frtdtq51btf1018bl3kf6df48.apps.googleusercontent.com"
 # PayPal 模式：sandbox（先测，不真实扣款）/ live（生产）。敏感凭证走 secret。
-PAYPAL_MODE = "sandbox"
+PAYPAL_MODE = "live"
 
 # ⚠️ 以下均为 secret，用 `wrangler secret put` 配置，勿提交明文：
 #   PAYPAL_CLIENT_ID       PayPal App 的 Client ID

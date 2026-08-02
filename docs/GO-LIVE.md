@@ -50,6 +50,8 @@
    - （可选）`BILLING.SUBSCRIPTION.SUSPENDED`、`PAYMENT.SUBSCRIPTION.PAYMENT.FAILED`
 4. 记下 **Live Webhook ID**（以 `WH-` 开头）
 
+> ✅ **本节（1.1–1.3）已于 2026-08-03 在 Live 模式执行完成**，实际创建的资源见 §8 执行记录。注意：Live Webhook ID 格式为 `2RJ...`（**无 `WH-` 前缀**），与沙箱 `WH-xxx` 不同，但 `webhook.ts` 验签用原值，格式差异不影响。
+
 ---
 
 ## 2. Cloudflare 配置更新
@@ -90,6 +92,8 @@
 
 ## 4. 生产闭环验证
 
+> **状态（2026-08-03）**：①②③ 配置已完成并部署（见 §8），**④ 真实付款验证延后**——用户决定用**另一个全新账号**测试（规避本机 `founder` 行被 `upsertSubscription` 覆盖、并避免误扣款）。以下步骤待该账号到位后执行。
+
 - [ ] 用真实 PayPal 个人账号（或在 Live 下新建一个测试买家）走一遍：Settings → Plus → 订阅 Plus → 跳转 PayPal → 批准付款
 - [ ] 检查 `/api/entitlement` 返回 `plan: "plus"`、`expiresAt` 为一年后的日期
 - [ ] PlusPanel 显示「已激活 Plus」+ 到期时间
@@ -98,6 +102,8 @@
 - [ ] （可选）验证 Founder 一次性购买（`create-order` → `capture-order` → `PAYMENT.CAPTURE.COMPLETED` → `plan=founder`）
 - [ ] 验证激活码兑换（`/api/redeem`）仍可用（不依赖 PayPal）
 - [ ] **真实扣款确认**：首次 live 交易后到 PayPal 账户余额/对账单确认实际收款金额与币种正确
+- [ ] **部署自检**（付款前）：点订阅后看 `approveUrl` host——`www.paypal.com`=已切 live 可付；`www.sandbox.paypal.com`=部署仍是旧 sandbox 版，需等 CI 绿/重部署
+- [ ] **只验证不持有时**：激活后立即在 PayPal 取消年付订阅，等 `BILLING.SUBSCRIPTION.CANCELLED` → plan 回落 free（避免明年自动续费 $19.99）
 
 ---
 
@@ -127,11 +133,33 @@
 
 ## 7. 附录：沙箱 / 生产 配置对照
 
-| 项 | 沙箱（当前） | 生产（目标） |
+| 项 | 沙箱（旧） | 生产（已生效 2026-08-03） |
 |---|---|---|
 | API host | `https://api.sandbox.paypal.com` | `https://api.paypal.com` |
-| `PAYPAL_MODE` | `sandbox` | `live` |
-| Client ID / Secret | 沙箱 App | Live App |
-| Plan ID | `P-95N33517HH960184ENJXAG2I` | 新建 Live Plan |
-| Webhook ID | `0A218640NP7504352` | 新建 Live Webhook |
+| `PAYPAL_MODE` | `sandbox` | `live`（已写入 `wrangler.toml` 并提交部署 `3abc8d0`） |
+| Client ID / Secret | 沙箱 App | **Live App**（已上传 Cloudflare Secret） |
+| Product ID | （沙箱未单独建） | `PROD-3S662145MM834030H` |
+| Plan ID | `P-95N33517HH960184ENJXAG2I` | `P-5HF36981A4341192LNJXXCIA`（年付 $19.99 USD, ACTIVE） |
+| Webhook ID | `0A218640NP7504352` | `2RJ173369R8705234`（无 `WH-` 前缀，正常） |
 | 真实扣款 | ❌ 不会 | ✅ 会 |
+
+---
+
+## 8. 执行记录（2026-08-03）
+
+**已完成（上线阻塞项 ①②③）：**
+1. **Live PayPal 资源创建**（host `api.paypal.com`，复用沙箱流程）：
+   - Product `PROD-3S662145MM834030H`
+   - Plan `P-5HF36981A4341192LNJXXCIA`（年付 $19.99 USD, `interval_unit=YEAR`）
+   - Webhook `2RJ173369R8705234`（URL `https://lumi365.com/api/billing/webhook`，3 事件已绑定）
+   - ⚠️ 坑：git bash 下 curl 发**中文** JSON body 被 PayPal 拒（`MALFORMED_REQUEST_JSON`）——PayPal 资源 `name`/`description` 必须用 ASCII。
+2. **4 个 Live Secret 已上传**（`wrangler pages secret put --project-name=lumi`）：`PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` / `PAYPAL_PLUS_PLAN_ID`(=`P-5HF36981A4341192LNJXXCIA`) / `PAYPAL_WEBHOOK_ID`(=`2RJ173369R8705234`)。`ADMIN_CODE` 保持原值未动（留存看板在用，旋转为可选后续）。
+3. **`wrangler.toml` 改 `PAYPAL_MODE = "live"`** → 提交 `3abc8d0` 已 push，CI 重新部署（用新 MODE + 新 Secret）。
+
+**延后（④ 生产验证）：**
+- 用户决定用**另一全新账号**做真实付款测试（规避本机 `founder` 行被 `upsertSubscription` 覆盖成 `plus`、并避免误扣款）。当前 live 配置已就绪，新账号到位即可直接走 §4 验证。
+- 代码层已确认链路正确：`create-subscription` 读 `PAYPAL_PLUS_PLAN_ID`(live) + 把 `user_id` 写入 `custom_id` 回传；`webhook.ts` 随 `PAYPAL_MODE=live` 自动切 `api.paypal.com` 验签落库；激活时 `upsertSubscription(plus)` 先 `DELETE` 旧行再 `INSERT`。
+
+**尚未做（可选）：**
+- `ADMIN_CODE` 旋转（建议上线后换成新强随机值）。
+- 地区分流（国内 ¥ / 海外 $）：当前单币种 USD 上线，符合 GO-LIVE §6 建议。

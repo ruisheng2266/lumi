@@ -41,7 +41,7 @@ async function load() {
   try {
     const res = await fetch(`${API}?code=${encodeURIComponent(code)}`, { cache: 'no-store' });
     if (res.status === 401) { setStatus('ADMIN_CODE 错误或无权限', true); return; }
-    if (!res.ok) { const e = await res.json().catch(() => ({})); setStatus('查询失败：' + (e.error || res.status), true); return; }
+    if (!res.ok) { const e = await res.json().catch(() => ({})); setStatus('查询失败：' + (e.error || res.status) + (e.detail ? '（' + e.detail + '）' : ''), true); return; }
     const d = await res.json();
     render(d);
     setStatus('更新于 ' + new Date(d.generated_at).toLocaleString());

@@ -11,6 +11,7 @@ import { Chip } from '../shared/ui/Chip';
 import { periodRepo, type Period } from '../shared/db/client';
 import { today, toISODate } from '../shared/lib/date';
 import { subDays } from 'date-fns';
+import { track } from '../shared/analytics';
 
 type Flow = 'light' | 'medium' | 'heavy';
 
@@ -111,6 +112,7 @@ export function PeriodEditSheet({
         await periodRepo.update(period.id, payload);
       } else {
         await periodRepo.add(payload);
+        track('period_added');
       }
       onSaved?.();
       onClose();

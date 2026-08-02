@@ -3,15 +3,19 @@
  * Pages Functions 与 D1 的共享类型（抽离，避免每个文件重复声明 —— 缺口④）
  */
 
+interface D1Statement {
+  first: <T = unknown>(col?: string) => Promise<T | null>;
+  run: () => Promise<{ meta: { changes: number; last_row_id: number } }>;
+  // 真实 Cloudflare D1 .all() 返回 { results: T[], success, meta }，不是直接 T[]
+  all: <T = unknown>() => Promise<{ results: T[]; success: boolean; meta?: Record<string, unknown> }>;
+}
+
 export interface D1Database {
   prepare: (sql: string) => {
-    bind: (...values: unknown[]) => {
-      first: <T = unknown>(col?: string) => Promise<T | null>;
-      run: () => Promise<{ meta: { changes: number; last_row_id: number } }>;
-      // 真实 Cloudflare D1 .all() 返回 { results: T[], success, meta }，不是直接 T[]
-      all: <T = unknown>() => Promise<{ results: T[]; success: boolean; meta?: Record<string, unknown> }>;
-    };
+    bind: (...values: unknown[]) => D1Statement;
   };
+  /** 批量执行多条语句（Cloudflare D1 原生支持），用于一次性写入匿名事件等 */
+  batch: (statements: D1Statement[]) => Promise<unknown[]>;
 }
 
 export interface PagesFunctionContext<E = unknown> {

@@ -10,6 +10,7 @@ import { today, fmtShort, daysBetween } from '../shared/lib/date';
 import { useNavigate } from 'react-router-dom';
 import { LogSheet } from '../features/LogSheet';
 import { PeriodEditSheet } from '../features/PeriodEditSheet';
+import { track } from '../shared/analytics';
 
 export function Today() {
   const { t } = useTranslation();
@@ -234,6 +235,7 @@ export function Today() {
             leftIcon={<Droplet size={18} />}
             onClick={async () => {
               await periodRepo.add({ startDate: today().toISOString().slice(0, 10) });
+              track('period_added');
             }}
           >
             {t('common.startPeriod')}

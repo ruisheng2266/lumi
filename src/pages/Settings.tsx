@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useTranslation } from 'react-i18next';
@@ -7,8 +7,11 @@ import { Card, CardTitle } from '../shared/ui/Card';
 import { Button } from '../shared/ui/Button';
 import { Sheet } from '../shared/ui/Sheet';
 import { Select } from '../shared/ui/Select';
+import { Switch } from '../shared/ui/Switch';
 import { useLanguage } from '../shared/i18n/useLanguage';
 import { useAuth } from '../shared/auth/store';
+import { setAnalyticsEnabled } from '../shared/analytics';
+import { notificationPermission, requestNotificationPermission } from '../shared/notifications';
 import {
   db,
   periodRepo,
@@ -42,6 +45,23 @@ export function Settings() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<{ periods: number; logs: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [notifEnabled, setNotifEnabled] = useState(false);
+  const [analyticsOn, setAnalyticsOn] = useState(true);
+  const [notifBlocked, setNotifBlocked] = useState(false);
+
+  // 加载「周期提醒 / 匿名统计」偏好
+  useEffect(() => {
+    (async () => {
+      const a = await settingsRepo.get<boolean>('analytics_enabled');
+      const an = a !== false;
+      setAnalyticsOn(an);
+      setAnalyticsEnabled(an);
+      const n = await settingsRepo.get<boolean>('notifications_enabled');
+      setNotifEnabled(n === true);
+      if (n === true && notificationPermission() === 'denied') setNotifBlocked(true);
+    })();
+  }, []);
 
   const periodsCount = useLiveQuery(() => db.periods.count(), []);
   const logsCount = useLiveQuery(() => db.dailyLogs.count(), []);
@@ -88,6 +108,26 @@ export function Settings() {
   async function handleEventDelete(id: number) {
     await lifeEventRepo.remove(id);
     setEventToDelete(null);
+  }
+
+  async function handleAnalyticsToggle(next: boolean) {
+    setAnalyticsOn(next);
+    setAnalyticsEnabled(next);
+    await settingsRepo.set('analytics_enabled', next);
+  }
+
+  async function handleNotifToggle(next: boolean) {
+    if (next) {
+      const perm = await requestNotificationPermission();
+      if (perm !== 'granted') {
+        setNotifEnabled(false);
+        setNotifBlocked(perm === 'denied');
+        return;
+      }
+      setNotifBlocked(false);
+    }
+    setNotifEnabled(next);
+    await settingsRepo.set('notifications_enabled', next);
   }
 
   async function handleExport() {
@@ -333,6 +373,30 @@ export function Settings() {
           <div className="flex items-start gap-3">
             <Info size={18} className="text-lavender-500 mt-0.5 shrink-0" />
             <p className="text-sm text-fog leading-relaxed">{t('settings.privacyNotice')}</p>
+          </div>
+        </Card>
+      </section>
+
+      {/* 提醒与匿名统计（2026-08-02，隐私优先） */}
+      <section>
+        <CardTitle>{t('settings.remindersStats')}</CardTitle>
+        <Card className="space-y-4">
+          <Switch
+            checked={notifEnabled}
+            onChange={handleNotifToggle}
+            label={t('settings.notifications')}
+            description={t('settings.notificationsDesc')}
+          />
+          {notifBlocked && (
+            <p className="text-xs text-coral-500">{t('settings.notificationsBlocked')}</p>
+          )}
+          <div className="border-t border-lavender-100 pt-4">
+            <Switch
+              checked={analyticsOn}
+              onChange={handleAnalyticsToggle}
+              label={t('settings.analytics')}
+              description={t('settings.analyticsDesc')}
+            />
           </div>
         </Card>
       </section>

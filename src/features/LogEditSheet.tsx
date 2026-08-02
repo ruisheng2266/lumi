@@ -9,6 +9,7 @@ import { Sheet } from '../shared/ui/Sheet';
 import { Button } from '../shared/ui/Button';
 import { Chip } from '../shared/ui/Chip';
 import { dailyLogRepo, type DailyLog } from '../shared/db/client';
+import { track } from '../shared/analytics';
 
 const SYMPTOM_KEYS = [
   'cramps', 'headache', 'bloating', 'discharge',
@@ -81,6 +82,7 @@ export function LogEditSheet({
         symptoms: symptoms.length ? symptoms : undefined,
         notes: notes.trim() || undefined,
       });
+      track('log_added');
       onSaved?.();
       onClose();
     } finally {

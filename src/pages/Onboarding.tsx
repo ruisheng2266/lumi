@@ -10,6 +10,7 @@ import { userProfileRepo, settingsRepo, periodRepo } from '../shared/db/client';
 import { today } from '../shared/lib/date';
 import { toISODate } from '../shared/lib/date';
 import { useTheme } from '../shared/theme/useTheme';
+import { track } from '../shared/analytics';
 
 type Step = 1 | 2 | 3;
 
@@ -46,6 +47,7 @@ export function Onboarding() {
       startDate: lastPeriodDate,
       endDate: undefined, // 用户没填结束日
     });
+    track('period_added');
 
     // 标记 onboarding 完成
     await settingsRepo.set('onboarded', true);

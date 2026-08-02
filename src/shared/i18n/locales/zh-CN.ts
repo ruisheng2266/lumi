@@ -235,6 +235,12 @@ common: {
       importMergeHint: '导入以「合并」方式写入，不会覆盖你已有的记录',
       about: '关于',
       version: '版本',
+      remindersStats: '提醒与统计',
+      notifications: '周期提醒',
+      notificationsDesc: '经期临近时在浏览器显示提醒通知（需授予通知权限）。',
+      notificationsBlocked: '通知权限已被浏览器拒绝，请在地址栏左侧的站点设置中允许通知后重试。',
+      analytics: '匿名使用统计',
+      analyticsDesc: '发送完全匿名的使用数据（不含任何个人信息），帮助我们改进预测与功能。可随时关闭。',
       privacyNotice: 'Lumi V1 不会向任何服务器上传数据。可在浏览器 DevTools 的 Network 面板验证。',
     },
     account: {

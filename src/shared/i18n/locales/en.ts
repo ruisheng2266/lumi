@@ -191,6 +191,12 @@ common: {
       importSuccess: 'Import complete — merged {periods} period records and {logs} logs',
       importMergeHint: 'Import merges into your existing data and never overwrites it.',
       about: 'About', version: 'Version',
+      remindersStats: 'Reminders & stats',
+      notifications: 'Period reminders',
+      notificationsDesc: 'Show a browser notification when your period is due soon (requires notification permission).',
+      notificationsBlocked: 'Notifications are blocked by your browser. Allow them from the address-bar site settings, then try again.',
+      analytics: 'Anonymous usage stats',
+      analyticsDesc: 'Sends fully anonymous usage data (no personal info) to help us improve predictions and features. You can turn this off anytime.',
       privacyNotice: 'Lumi V1 never uploads data to any server. Verify in DevTools Network panel.',
     },
     account: {

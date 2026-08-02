@@ -5,6 +5,7 @@ import { Button } from '../shared/ui/Button';
 import { Chip } from '../shared/ui/Chip';
 import { dailyLogRepo } from '../shared/db/client';
 import { today, toISODate } from '../shared/lib/date';
+import { track } from '../shared/analytics';
 
 const SYMPTOM_KEYS = [
   'cramps', 'headache', 'bloating', 'discharge',
@@ -47,6 +48,7 @@ export function LogSheet({ open, onClose }: LogSheetProps) {
       symptoms: symptoms.length ? symptoms : undefined,
       notes: notes.trim() || undefined,
     });
+    track('log_added');
     reset();
     onClose();
   }

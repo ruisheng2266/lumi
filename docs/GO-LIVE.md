@@ -100,19 +100,20 @@
 
 ## 4. 生产闭环验证
 
-> **状态（2026-08-03）**：①②③ 配置已完成并部署（见 §8），**④ 真实付款验证延后**——用户决定用**另一个全新账号**测试（规避本机 `founder` 行被 `upsertSubscription` 覆盖、并避免误扣款）。以下步骤待该账号到位后执行。
+> **状态（2026-08-03）**：①②③ 配置 + 月付 Plan 均已完成并部署（见 §8）。**④ 真实付款验证（任务 #75）待执行**——用户决定用**另一个全新账号**测试（规避本机 `founder` 行被 `upsertSubscription` 覆盖、并避免误扣款）。以下步骤待该账号到位后执行。完整可执行清单见 **`docs/PRODUCTION-VERIFICATION.md`**。
 
 - [ ] 用真实 PayPal 个人账号（或在 Live 下新建一个测试买家）走一遍：Settings → Plus → 订阅 Plus → 跳转 PayPal → 批准付款
 - [ ] 检查 `/api/entitlement` 返回 `plan: "plus"`、`expiresAt` 为一年后的日期
 - [ ] PlusPanel 显示「已激活 Plus」+ 到期时间
 - [ ] 查 D1 `subscriptions` 表确认写入 `plan=plus`、`provider=paypal`、`provider_sub_id` 为订阅 ID
+- [ ] **月付档同样走一遍**（Settings → Plus → 月付 → 批准）：确认 7 天试用期间即获得 Plus（`ACTIVATED` 落入 `plan=plus`），`billing_cycle=monthly`；D1 落库 `billing_cycle='monthly'`
 - [ ] 用 PayPal 后台的 **Webhook Simulator**（Live）或真实事件，确认 `BILLING.SUBSCRIPTION.ACTIVATED` 被收到且幂等（重复投递不重复开通）
   > **实测结论（2026-08-03 下午）**：用官方 `simulate-event` API 成功发起模拟，PayPal 真实投递带签名头的事件到 `/api/billing/webhook`（事件 `WH-7768…`），证明**端点可达 + 真实验签通过 + 事件分发正常**。但 PayPal `simulate-event` **不接受自定义 `resource`**（硬塞任意 `resource` 均返回 `MALFORMED_REQUEST_JSON`，正确用法为 `{webhook_id, event_type, resource_version}`，resource 由模板生成），模板资源**无 `custom_id`** → 本端 `webhook.ts` 正确返回 `skipped: no_custom_id` 不落库（已查 D1 确认无新行）。故 simulate-event 能验证「验签+分发」，**无法验证「落库为 plus」**——此层由本地单测补齐（见 §8「Webhook 不花钱验证」）。
 - [ ] （可选）验证 Founder 一次性购买（`create-order` → `capture-order` → `PAYMENT.CAPTURE.COMPLETED` → `plan=founder`）
 - [ ] 验证激活码兑换（`/api/redeem`）仍可用（不依赖 PayPal）
 - [ ] **真实扣款确认**：首次 live 交易后到 PayPal 账户余额/对账单确认实际收款金额与币种正确
 - [ ] **部署自检**（付款前）：点订阅后看 `approveUrl` host——`www.paypal.com`=已切 live 可付；`www.sandbox.paypal.com`=部署仍是旧 sandbox 版，需等 CI 绿/重部署
-- [ ] **只验证不持有时**：激活后立即在 PayPal 取消年付订阅，等 `BILLING.SUBSCRIPTION.CANCELLED` → plan 回落 free（避免明年自动续费 $19.99）
+- [ ] **只验证不持有时**：激活后若不想续费，立即在 PayPal 取消订阅，等 `BILLING.SUBSCRIPTION.CANCELLED` → plan 回落 free（避免明年自动续费 $19.99）
 
 ---
 
@@ -148,7 +149,7 @@
 | `PAYPAL_MODE` | `sandbox` | `live`（已写入 `wrangler.toml` 并提交部署 `3abc8d0`） |
 | Client ID / Secret | 沙箱 App | **Live App**（已上传 Cloudflare Secret） |
 | Product ID | （沙箱未单独建） | `PROD-3S662145MM834030H` |
-| Plan ID | `P-95N33517HH960184ENJXAG2I` | `P-5HF36981A4341192LNJXXCIA`（年付 $19.99 USD, ACTIVE）**+ 月付 Plan 待建** |
+| Plan ID | `P-95N33517HH960184ENJXAG2I` | 年付 `P-5HF36981A4341192LNJXXCIA`（$19.99/年, ACTIVE）+ 月付 `P-3VB87838PS565850CNJYLD7I`（$2.99/月, 含 7 天试用, ACTIVE）|
 | Webhook ID | `0A218640NP7504352` | `2RJ173369R8705234`（无 `WH-` 前缀，正常） |
 | 真实扣款 | ❌ 不会 | ✅ 会 |
 

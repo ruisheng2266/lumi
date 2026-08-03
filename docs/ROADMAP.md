@@ -144,7 +144,7 @@ PRD §13 沿用了内部里程碑标签（V1 / V1.4 / V1.5），与 GitHub 实�
 ## 4. 待定项（需拍板）
 
 - [x] **v0.4 优先级**：① 竞品导入 vs ② 特殊场景——两者均已在 v0.4 交付（获客杠杆 + 信任加固双覆盖）
-- [ ] **Plus 价格区间**：国内 ¥30–58/年 是否分档（如月度体验价）？
+- [x] **Plus 价格分档（2026-08-03，v0.7.7）**：已实现「月付（$2.99/月，含 7 天试用）+ 年付（$19.99/年，主推「省一半」）」双档；后端两个 PayPal Plan（`PAYPAL_PLUS_PLAN_ID` / `PAYPAL_PLUS_PLAN_ID_MONTHLY`），webhook 由 `plan_id` 反推 `billing_cycle` 落库；前端按显示语言地区分流展示 ¥/$ 单一币种。详见 `PRICING-STRATEGY.md` §7。
 - [x] **创始终身 ¥98 日落承诺落地（2026-08-03，v0.7.6）**：终身范围按 `PRICING-STRATEGY.md` §4 日落承诺执行——设备端功能真终身，后端服务（同步 / AI / 共享）受停运预案保障。落地文案写入 `PlusPanel`（`founderDesc`/`founderSunset` 改为诚实表述）+ 关于页新增「停运预案（Sunset Commitment）」区块；`PRICING-STRATEGY.md` §4.3 原条款已发布到用户可见界面。
 - [x] **用户系统是自建 D1 还是第三方 BaaS**？已定：自建 Cloudflare D1（非 BaaS），Phase 1 已实现并上线 ✅
 - [ ] 是否接受「先发国际版（en 优先）再回国内」的节奏？

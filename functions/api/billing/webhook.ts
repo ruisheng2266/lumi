@@ -93,8 +93,29 @@ export const onRequestPost: Handler = async (context) => {
 
   // 打赏订单：custom_id 以 donation: 开头 → 不写任何 entitlement（避免误判为 founder 永久档）
   if (userId.startsWith('donation:')) {
-    console.log('[webhook] donation event ignored for entitlement:', eventType);
-    return json({ received: true, skipped: 'donation' });
+    // 匿名聚合统计：仅累计金额/笔数/时间，不含任何用户身份
+    if (eventType === 'PAYMENT.CAPTURE.COMPLETED') {
+      try {
+        const amt = (resource.amount as { value?: string; currency_code?: string } | undefined) || {};
+        const value = amt.value ? parseFloat(amt.value) : NaN;
+        const currency = amt.currency_code || 'USD';
+        if (Number.isFinite(value) && value > 0) {
+          const ts = Date.now();
+          // 仅 PayPal 捐赠会到这（currency=USD）；非 USD 时 amount_usd 留 null，避免错误折算
+          const amountUsd = currency === 'USD' ? value : null;
+          await context.env.DB.prepare(
+            'INSERT INTO donations_aggregate (currency, amount, amount_usd, ts) VALUES (?, ?, ?, ?)',
+          )
+            .bind(currency, value, amountUsd, ts)
+            .run();
+        }
+      } catch (e) {
+        // 聚合统计失败绝不影响主流程：仍返回 200，避免 PayPal 重投风暴
+        console.error('[webhook] donation aggregate insert failed:', e instanceof Error ? e.message : e);
+      }
+    }
+    console.log('[webhook] donation event recorded (aggregate only):', eventType);
+    return json({ received: true, donation_recorded: true });
   }
 
   try {

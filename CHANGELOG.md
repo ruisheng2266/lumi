@@ -4,6 +4,18 @@ Lumi 版本发布记录（逆向时间序）。早期版本（v0.2.0–v0.5.0）
 
 ---
 
+## [2026-08-03] v0.7.2 — 打赏匿名聚合统计（看板）
+
+**新增：打赏后端匿名聚合统计（仅 PayPal 路径，零 PII）**
+- 新增 `migrations/0006_donations.sql`：`donations_aggregate(currency, amount, amount_usd, ts)`，仅累计金额/笔数/时间，**不含任何用户身份**（无 user_id / 姓名 / 邮箱）。
+- `functions/api/billing/webhook.ts`：收到 `donation:` 前缀的 `PAYMENT.CAPTURE.COMPLETED` 时写入一行聚合记录（独立 try/catch，DB 失败不影响 webhook 返回 200）；仍跳过 entitlement 写入。国内微信/支付宝扫码直接进个人账户、Lumi 后端无事件，故不在统计内。
+- 新增 `functions/api/admin/donations.ts`（`GET /api/admin/donations`，ADMIN_CODE 保护）返回：总笔数 / 累计总额(USD) / 近30日笔数+额 / 按币种 / 按月趋势(近12月) / 最近20笔。
+- 新增 `public/donations.html` + `public/donations.js` 看板（CSP 兼容：外部 JS、无内联 script），访问 `/donations.html?code=<ADMIN_CODE>`。
+- 决策更新：原"完全不记录"调整为"匿名聚合统计"——Lumi 后端仍不记录任何个人身份，但 owner 可通过 ADMIN_CODE 看板查看捐赠总览。前端普通用户无任何展示。`docs/DONATION.md` 已同步更新。
+- 单测 7 例（含 webhook donation 写聚合行 + 不写 subscription、非 capture 事件不写聚合）；全量 `vitest run` **163 passed**；`tsc -b` + `vite build` 通过。
+
+---
+
 ## [未发布] 生产闭环真机验证（待办）
 
 - PayPal 已切 Live（`PAYPAL_MODE=live`，2026-08-03 提交 `3abc8d0` 部署），真实扣款已开启。

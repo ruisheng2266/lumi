@@ -2,7 +2,7 @@
 
 > 文档版本：v1.0
 > 日期：2026-07-31
-> 状态：v0.5.0 已发布（含导航与对比度收尾）；v1.0 Phase 1（账号 MVP / Google 登录）已上线验证（2026-07-31）；**Phase 2（E2EE 同步）与 Phase 3（Plus 权益 + 支付）已于 2026-08-01 实现 + PayPal 沙箱全链路真机验证通过**（v0.6.0）；**Phase 3 已于 2026-08-03 切到 PayPal Live 生产（真实扣款开启，生产验证待另一账号）**；**v0.7.1（2026-08-03）打赏（Donation）入口已上线（设置页常驻「支持 Lumi」、PayPal 一次性捐赠 + 国内收款码占位、完全不记录、本地「💜 已支持」标记，与定价红线零冲突）**；Phase 4（伴侣共享 / AI）待做，待定项见末尾
+> 状态：v0.5.0 已发布（含导航与对比度收尾）；v1.0 Phase 1（账号 MVP / Google 登录）已上线验证（2026-07-31）；**Phase 2（E2EE 同步）与 Phase 3（Plus 权益 + 支付）已于 2026-08-01 实现 + PayPal 沙箱全链路真机验证通过**（v0.6.0）；**Phase 3 已于 2026-08-03 切到 PayPal Live 生产（真实扣款开启，生产验证待另一账号）**；**v0.7.1（2026-08-03）打赏（Donation）入口已上线**；**v0.7.2（2026-08-03）打赏匿名聚合统计看板上線（donations_aggregate + ADMIN_CODE 看板，零 PII）**；Phase 4（伴侣共享 / AI）待做，待定项见末尾
 > 关联文档：`docs/MVP-PRD.md`（PRD）、`docs/PRICING-STRATEGY.md`（定价策略）
 
 ---
@@ -100,6 +100,12 @@ PRD §13 沿用了内部里程碑标签（V1 / V1.4 / V1.5），与 GitHub 实�
 > - **隐私**：完全不记录捐赠（webhook 仅跳过、前端不发任何统计）；本地「💜 已支持」标记存 localStorage，明确不解锁功能。
 > - **金额档位**：海外 `$0.5 / $1 / $3 / $5` + 自定义（不设定上限）；国内建议 `¥6 / ¥18 / ¥30`（扫码自定，不设定上限）。
 > - 设计文档 `docs/DONATION.md`；提交 `667d2d5`，tag `v0.7.1`，**162 测试 + `tsc -b` + `vite build` 全绿**。
+
+> 📌 **v0.7.2 — 打赏匿名聚合统计看板（2026-08-03，已 push + 部署）**：
+> - **背景**：v0.7.1 为「完全不记录」（webhook 仅跳过不落库），owner 无法在 Lumi 后端查看捐赠统计。用户确认改为「匿名聚合统计」——仍零 PII，但能看总览。
+> - **实现**：`migrations/0006_donations.sql` 新增 `donations_aggregate(currency, amount, amount_usd, ts)`；`webhook.ts` 对 `donation:` 前缀的 `PAYMENT.CAPTURE.COMPLETED` 写一行聚合（独立 try/catch 不影响 200 返回），仍跳过 entitlement；新增 `functions/api/admin/donations.ts`（ADMIN_CODE 保护）返回总额/笔数/近30日/按币种/按月/最近20笔；`public/donations.html` + `donations.js` 看板（CSP 兼容）。
+> - **范围**：仅覆盖海外 PayPal 捐赠；国内微信/支付宝扫码 Lumi 后端无事件、不在统计内（只能在你自己的微信/支付宝 App 看）。
+> - **文档**：`docs/DONATION.md` §5.4/§8/§12 同步改为「匿名聚合统计」；提交 `1806791` 之后；**163 测试 + `tsc -b` + `vite build` 全绿**；版本升 v0.7.2（tag `v0.7.2`）。
 
 ### 🟣 v1.x+ — 生态扩展（混合层）
 | 方向 | 说明 |

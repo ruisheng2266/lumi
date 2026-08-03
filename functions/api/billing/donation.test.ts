@@ -184,7 +184,7 @@ describe('Donation webhook safety', () => {
     });
   }
 
-  it('PAYMENT.CAPTURE.COMPLETED with donation: custom_id → writes NO subscription (no founder mislabel)', async () => {
+  it('PAYMENT.CAPTURE.COMPLETED with donation: custom_id → NO subscription, but writes 1 aggregate row', async () => {
     mockFetch((url) => {
       if (url.includes('/v1/oauth2/token')) return { status: 200, body: { access_token: 'tok', expires_in: 3600 } };
       if (url.includes('/verify-webhook-signature')) return { status: 200, body: { verification_status: 'SUCCESS' } };
@@ -192,7 +192,12 @@ describe('Donation webhook safety', () => {
     });
     const event = {
       event_type: 'PAYMENT.CAPTURE.COMPLETED',
-      resource: { id: 'CAPX', custom_id: 'donation:abc', supplementary_data: { related_ids: { order_id: 'DX' } } },
+      resource: {
+        id: 'CAPX',
+        custom_id: 'donation:abc',
+        amount: { value: '3.00', currency_code: 'USD' },
+        supplementary_data: { related_ids: { order_id: 'DX' } },
+      },
     };
     const r = new Request('https://x/api/billing/webhook', {
       method: 'POST',
@@ -205,7 +210,40 @@ describe('Donation webhook safety', () => {
     const res = await webhookPost(makeCtx(r, db, PAYPAL_ENV));
     const j = await res.json();
     expect(j.received).toBe(true);
-    expect(j.skipped).toBe('donation');
+    expect(j.donation_recorded).toBe(true);
+    // 关键：仍不写任何 entitlement（不误判 founder）
+    expect(db.tables.subscriptions.length).toBe(0);
+    // 匿名聚合：写入 1 行（currency/amount/amount_usd/ts，无身份）
+    expect(db.tables.donations_aggregate.length).toBe(1);
+    const row = db.tables.donations_aggregate[0] as any;
+    expect(row.currency).toBe('USD');
+    expect(row.amount).toBe(3);
+    expect(row.amount_usd).toBe(3);
+    expect(typeof row.ts).toBe('number');
+  });
+
+  it('donation event that is NOT capture (e.g. REFUNDED) → writes NO aggregate row', async () => {
+    mockFetch((url) => {
+      if (url.includes('/v1/oauth2/token')) return { status: 200, body: { access_token: 'tok', expires_in: 3600 } };
+      if (url.includes('/verify-webhook-signature')) return { status: 200, body: { verification_status: 'SUCCESS' } };
+      return { status: 404, body: {} };
+    });
+    const event = {
+      event_type: 'PAYMENT.CAPTURE.REFUNDED',
+      resource: { id: 'CAPX', custom_id: 'donation:abc', amount: { value: '3.00', currency_code: 'USD' } },
+    };
+    const r = new Request('https://x/api/billing/webhook', {
+      method: 'POST',
+      headers: {
+        'paypal-transmission-id': 'T1', 'paypal-transmission-time': '1', 'paypal-cert-url': 'c',
+        'paypal-auth-algo': 'a', 'paypal-transmission-sig': 's', 'paypal-event-type': 'PAYMENT.CAPTURE.REFUNDED',
+      },
+      body: JSON.stringify(event),
+    });
+    const res = await webhookPost(makeCtx(r, db, PAYPAL_ENV));
+    const j = await res.json();
+    expect(j.received).toBe(true);
+    expect(db.tables.donations_aggregate.length).toBe(0);
     expect(db.tables.subscriptions.length).toBe(0);
   });
 });

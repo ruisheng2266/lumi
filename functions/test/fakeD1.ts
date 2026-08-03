@@ -17,6 +17,7 @@ export function createFakeD1(): FakeD1 {
     sync_meta: [],
     key_backup: [],
     recovery_codes: [],
+    donations_aggregate: [],
   };
 
   const execute = (sql: string, vals: unknown[]): Record<string, unknown>[] => {
@@ -142,6 +143,18 @@ export function createFakeD1(): FakeD1 {
     if (/DELETE FROM key_backup WHERE user_id = \?/.test(sql)) return delByUser('key_backup'), [];
     if (/DELETE FROM sync_meta WHERE user_id = \?/.test(sql)) return delByUser('sync_meta'), [];
     if (/DELETE FROM subscriptions WHERE user_id = \?/.test(sql)) return delByUser('subscriptions'), [];
+    // 打赏匿名聚合统计（0006）：INSERT 一行
+    if (/INSERT INTO donations_aggregate/.test(sql)) {
+      const [currency, amount, amountUsd, ts] = vals as [string, number, number | null, number];
+      tables.donations_aggregate.push({
+        id: tables.donations_aggregate.length + 1,
+        currency,
+        amount,
+        amount_usd: amountUsd,
+        ts,
+      });
+      return [];
+    }
     // Phase 3：subscription upsert（先删后插）
     if (/INSERT INTO subscriptions/.test(sql)) {
       const [uid, plan, provider, psub, expires, created] = vals as [

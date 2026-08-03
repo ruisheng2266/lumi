@@ -2,7 +2,7 @@
 
 > 文档版本：v1.0
 > 日期：2026-07-31
-> 状态：v0.5.0 已发布（含导航与对比度收尾）；v1.0 Phase 1（账号 MVP / Google 登录）已上线验证（2026-07-31）；**Phase 2（E2EE 同步）与 Phase 3（Plus 权益 + 支付）已于 2026-08-01 实现 + PayPal 沙箱全链路真机验证通过**（v0.6.0）；**Phase 3 已于 2026-08-03 切到 PayPal Live 生产（真实扣款开启，生产验证待另一账号）**；Phase 4（伴侣共享 / AI）待做，待定项见末尾
+> 状态：v0.5.0 已发布（含导航与对比度收尾）；v1.0 Phase 1（账号 MVP / Google 登录）已上线验证（2026-07-31）；**Phase 2（E2EE 同步）与 Phase 3（Plus 权益 + 支付）已于 2026-08-01 实现 + PayPal 沙箱全链路真机验证通过**（v0.6.0）；**Phase 3 已于 2026-08-03 切到 PayPal Live 生产（真实扣款开启，生产验证待另一账号）**；**v0.7.1（2026-08-03）打赏（Donation）入口已上线（设置页常驻「支持 Lumi」、PayPal 一次性捐赠 + 国内收款码占位、完全不记录、本地「💜 已支持」标记，与定价红线零冲突）**；Phase 4（伴侣共享 / AI）待做，待定项见末尾
 > 关联文档：`docs/MVP-PRD.md`（PRD）、`docs/PRICING-STRATEGY.md`（定价策略）
 
 ---
@@ -91,6 +91,15 @@ PRD §13 沿用了内部里程碑标签（V1 / V1.4 / V1.5），与 GitHub 实�
 > - **本地周期提醒（召回主力，零服务器）**：新增 `src/shared/notifications.ts`（基于 `predictCycle.nextPeriodStart` 提前 2 天、应用时 best-effort 弹 Notification；明确 Web 无法后台精确排程，可靠定时推送留作后续 Push API 增强）+ `src/shared/ui/Switch.tsx` 开关组件 + Settings「提醒与统计」分区（通知开关 + 匿名统计开关，均尊重权限/可关）。
 > - **设计原则**：两套机制都不强制登录、不碰基础健康功能付费墙、不接入广告——与定价红线一致；匿名统计明确"可随时关闭"，信任优先。
 > - 提交 `d51a9a3`（16 文件 +442/-8）。**`tsc -b` + `tsc -p tsconfig.functions.json` + `vite build` 全绿，152 测试通过**。
+
+> 📌 **v0.7.1 — 打赏（Donation）入口已上线（2026-08-03，已 push + 部署）**：
+> - **动机**：在「免费基础 + 不弹窗 + 不挡体验」前提下，给愿意支持的用户一个自愿通道，与定价红线（永不广告、永不 Nagware、永不移基础功能入付费墙）**零冲突**——打赏纯自愿、不解锁任何功能、不替代 Plus。
+> - **入口**：设置页 `PlusPanel` 之后新增常驻「支持 Lumi」区块（相对明显、非弹窗、**未登录用户也可用**）。
+> - **渠道**：① 海外复用已上线的 PayPal Live（`POST /api/billing/create-donation` + `/api/billing/capture-donation`，匿名、`donation:` 前缀 custom_id、金额仅基础格式校验、无上限）；② 国内微信/支付宝收款码（`public/donate/wechat.svg` + `alipay.svg` 占位图，纯前端 Sheet 展示，后续替换真实码只需改 `DonatePanel.tsx` 两行路径）。
+> - **关键避险**：`/api/billing/webhook.ts` 对 `donation:` 前缀事件**跳过 entitlement 写入**——避免一笔打赏被误判成"创始终身"；`capture-donation` 也校验订单前缀，防越权捕获他人订单。
+> - **隐私**：完全不记录捐赠（webhook 仅跳过、前端不发任何统计）；本地「💜 已支持」标记存 localStorage，明确不解锁功能。
+> - **金额档位**：海外 `$0.5 / $1 / $3 / $5` + 自定义（不设定上限）；国内建议 `¥6 / ¥18 / ¥30`（扫码自定，不设定上限）。
+> - 设计文档 `docs/DONATION.md`；提交 `667d2d5`，tag `v0.7.1`，**162 测试 + `tsc -b` + `vite build` 全绿**。
 
 ### 🟣 v1.x+ — 生态扩展（混合层）
 | 方向 | 说明 |

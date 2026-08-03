@@ -154,7 +154,7 @@
    - Plan `P-5HF36981A4341192LNJXXCIA`（年付 $19.99 USD, `interval_unit=YEAR`）
    - Webhook `2RJ173369R8705234`（URL `https://lumi365.com/api/billing/webhook`，3 事件已绑定）
    - ⚠️ 坑：git bash 下 curl 发**中文** JSON body 被 PayPal 拒（`MALFORMED_REQUEST_JSON`）——PayPal 资源 `name`/`description` 必须用 ASCII。
-2. **4 个 Live Secret 已上传**（`wrangler pages secret put --project-name=lumi`）：`PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` / `PAYPAL_PLUS_PLAN_ID`(=`P-5HF36981A4341192LNJXXCIA`) / `PAYPAL_WEBHOOK_ID`(=`2RJ173369R8705234`)。`ADMIN_CODE` 保持原值未动（留存看板在用，旋转为可选后续）。
+2. **4 个 Live Secret 已上传**（`wrangler pages secret put --project-name=lumi`）：`PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` / `PAYPAL_PLUS_PLAN_ID`(=`P-5HF36981A4341192LNJXXCIA`) / `PAYPAL_WEBHOOK_ID`(=`2RJ173369R8705234`)。`ADMIN_CODE` 已于 2026-08-03 旋转为新的强随机值（40 字符 hex，留存/捐赠/激活码三个 admin 端点共用）。
 3. **`wrangler.toml` 改 `PAYPAL_MODE = "live"`** → 提交 `3abc8d0` 已 push，CI 重新部署（用新 MODE + 新 Secret）。
 
 **延后（④ 生产验证）：**
@@ -168,5 +168,4 @@
 - 结论：**「webhook 验签 + 落库逻辑」已双重验证**（真实验签链路 + 单测精确落库）。唯一未覆盖的是「真实付款 → custom_id 由我们写入 → 指定账号落库为 plus」端到端层，需真实交易（任务 #75，等另一账号）。simulate-event 先天做不到此层。
 
 **尚未做（可选）：**
-- `ADMIN_CODE` 旋转（建议上线后换成新强随机值）。
 - 地区分流（国内 ¥ / 海外 $）：当前单币种 USD 上线，符合 GO-LIVE §6 建议。

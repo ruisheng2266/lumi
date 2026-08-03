@@ -216,3 +216,66 @@ describe('Phase 2 sync endpoints', () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe('sync-setup 权益门控（402 / 祖父条款）', () => {
+  let db: ReturnType<typeof createFakeD1>;
+  let bucket: ReturnType<typeof makeBucket>;
+
+  beforeEach(() => {
+    db = createFakeD1();
+    db.tables.users.push({
+      id: USER_ID,
+      google_id: 'g1',
+      apple_id: null,
+      email: 'a@b.c',
+      name: 'x',
+      picture: null,
+      created_at: 1,
+      last_login_at: 1,
+    });
+    db.tables.sessions.push({ id: SESSION_ID, user_id: USER_ID, expires_at: Date.now() + 1e9, created_at: 1 });
+    // 故意不推付费订阅 → 默认 free，专门验证门控
+    bucket = makeBucket();
+  });
+
+  it('免费无权益用户 POST /api/sync-setup 被 402 拦截（防白嫖同步）', async () => {
+    const p = await setupPost(
+      makeCtx(
+        req('POST', 'https://x/api/sync-setup', {
+          wrappedVaultKey: b64('wrappedvault'),
+          salt: b64('salt'),
+          recoveryCodes: [{ codeHash: 'h1', wrappedVaultKey: b64('rc1') }],
+        }),
+        db,
+        bucket,
+      ),
+    );
+    expect(p.status).toBe(402);
+    expect((await p.json()).error).toBe('upgrade_required');
+    // 关键：不能写入 key_backup，否则会被错误祖父化、永久免费同步
+    expect(db.tables.key_backup).toHaveLength(0);
+  });
+
+  it('祖父用户（free + 已有 key_backup）POST /api/sync-setup 放行', async () => {
+    // 模拟 Phase 2 遗留：已启用过同步
+    db.tables.key_backup.push({
+      user_id: USER_ID,
+      wrapped_vault_key: b64('legacy'),
+      salt: b64('s'),
+      created_at: 1,
+    });
+    const p = await setupPost(
+      makeCtx(
+        req('POST', 'https://x/api/sync-setup', {
+          wrappedVaultKey: b64('wrappedvault'),
+          salt: b64('salt'),
+          recoveryCodes: [{ codeHash: 'h1', wrappedVaultKey: b64('rc1') }],
+        }),
+        db,
+        bucket,
+      ),
+    );
+    expect(p.status).toBe(200);
+    expect((await p.json()).ok).toBe(true);
+  });
+});

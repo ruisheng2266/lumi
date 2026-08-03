@@ -26,6 +26,7 @@ import { useTheme } from '../shared/theme/useTheme';
 import { APP_VERSION } from '../shared/version';
 import { SyncPanel } from '../shared/sync/SyncPanel';
 import { PlusPanel } from '../shared/plus/PlusPanel';
+import { DonatePanel } from '../shared/donate/DonatePanel';
 import { detectAndParse, type ImportPreview } from '../shared/lib/import';
 
 export function Settings() {
@@ -285,6 +286,9 @@ export function Settings() {
 
       {/* Lumi Plus（Phase 3：方案展示 + 升级 / 激活码兑换） */}
       <PlusPanel />
+
+      {/* 打赏（Donation）：面向所有用户的自愿支持入口，不解锁任何功能 */}
+      <DonatePanel />
 
       {/* 云端同步（Phase 2；Phase 3 起同步改为 Plus 专属，祖父老用户保留免费同步） */}
       <SyncPanel />

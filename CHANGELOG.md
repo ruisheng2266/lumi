@@ -12,6 +12,19 @@ Lumi 版本发布记录（逆向时间序）。早期版本（v0.2.0–v0.5.0）
 
 ---
 
+## [2026-08-03] v0.7.1 — 打赏（Donation）入口
+
+**新增：面向所有用户的自愿打赏入口（纯加法，不碰定价红线）**
+- 设置页 `PlusPanel` 之后新增常驻「支持 Lumi」区块（`src/shared/donate/DonatePanel.tsx`），相对明显、非弹窗、未登录用户也可使用。
+- 海外：PayPal 一次性捐赠，新增 `functions/api/billing/create-donation.ts` + `capture-donation.ts`（匿名、`donation:` 前缀 custom_id、金额仅基础格式校验不设定上限）；复用现有 Live 集成。
+- 国内：微信/支付宝收款码占位图（`public/donate/wechat.svg` + `alipay.svg`，后续替换真实码），纯前端展示。
+- **关键避险**：`functions/api/billing/webhook.ts` 对 `donation:` 前缀事件跳过 entitlement 写入，避免打赏被误判为创始终身；`capture-donation` 校验订单前缀防越权捕获。完全不记录捐赠（最隐私）。
+- 打赏成功后本地写入「💜 已支持」标记（localStorage，明确不解锁功能）；文案明确"打赏 ≠ Plus"。
+- i18n 双语文案（`donate` 段）；单测 6 例（create-donation / capture-donation / webhook 跳过）全绿；`tsc -b` + `vite build` 通过。
+- 设计文档：`docs/DONATION.md`。
+
+---
+
 ## [2026-08-03] PayPal 切换 Live 生产
 
 - 提交 `3abc8d0`：`wrangler.toml` 的 `PAYPAL_MODE` 由 `sandbox` → `live`，CI 重新部署。

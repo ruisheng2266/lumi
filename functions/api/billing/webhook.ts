@@ -91,6 +91,12 @@ export const onRequestPost: Handler = async (context) => {
     return json({ received: true, skipped: 'no_custom_id' });
   }
 
+  // 打赏订单：custom_id 以 donation: 开头 → 不写任何 entitlement（避免误判为 founder 永久档）
+  if (userId.startsWith('donation:')) {
+    console.log('[webhook] donation event ignored for entitlement:', eventType);
+    return json({ received: true, skipped: 'donation' });
+  }
+
   try {
     switch (eventType) {
       case 'PAYMENT.CAPTURE.COMPLETED': {

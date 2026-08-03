@@ -286,4 +286,63 @@ describe('Phase 3 PayPal (mocked fetch)', () => {
     const res = await webhookPost(makeCtx(r, db, PAYPAL_ENV));
     expect(res.status).toBe(401);
   });
+
+  it('webhook ACTIVATED writes plan=plus with next_billing_time expiry', async () => {
+    mockFetch((url) => {
+      if (url.includes('/v1/oauth2/token')) return { status: 200, body: { access_token: 'tok', expires_in: 3600 } };
+      if (url.includes('/verify-webhook-signature')) return { status: 200, body: { verification_status: 'SUCCESS' } };
+      return { status: 404, body: {} };
+    });
+    const next = '2027-08-03T10:00:00Z';
+    const event = {
+      event_type: 'BILLING.SUBSCRIPTION.ACTIVATED',
+      resource: { id: 'I-TESTSUB', custom_id: USER_ID, billing_info: { next_billing_time: next } },
+    };
+    const r = new Request('https://x/api/billing/webhook', {
+      method: 'POST',
+      headers: {
+        'paypal-transmission-id': 'T1', 'paypal-transmission-time': '1', 'paypal-cert-url': 'c',
+        'paypal-auth-algo': 'a', 'paypal-transmission-sig': 's', 'paypal-event-type': 'BILLING.SUBSCRIPTION.ACTIVATED',
+      },
+      body: JSON.stringify(event),
+    });
+    const res = await webhookPost(makeCtx(r, db, PAYPAL_ENV));
+    const j = await res.json();
+    expect(j.received).toBe(true);
+    expect(db.tables.subscriptions.length).toBe(1);
+    expect(db.tables.subscriptions[0].plan).toBe('plus');
+    expect(db.tables.subscriptions[0].provider_sub_id).toBe('I-TESTSUB');
+    expect(db.tables.subscriptions[0].expires_at).toBe(Date.parse(next));
+  });
+
+  it('webhook CANCELLED expires subscription (plan retained, expires_at=now)', async () => {
+    mockFetch((url) => {
+      if (url.includes('/v1/oauth2/token')) return { status: 200, body: { access_token: 'tok', expires_in: 3600 } };
+      if (url.includes('/verify-webhook-signature')) return { status: 200, body: { verification_status: 'SUCCESS' } };
+      return { status: 404, body: {} };
+    });
+    const next = '2027-08-03T10:00:00Z';
+    const subId = 'I-TESTSUB';
+    const act = new Request('https://x/api/billing/webhook', {
+      method: 'POST',
+      headers: { 'paypal-transmission-id': 'T1', 'paypal-transmission-time': '1', 'paypal-cert-url': 'c',
+        'paypal-auth-algo': 'a', 'paypal-transmission-sig': 's', 'paypal-event-type': 'BILLING.SUBSCRIPTION.ACTIVATED' },
+      body: JSON.stringify({ event_type: 'BILLING.SUBSCRIPTION.ACTIVATED', resource: { id: subId, custom_id: USER_ID, billing_info: { next_billing_time: next } } }),
+    });
+    await webhookPost(makeCtx(act, db, PAYPAL_ENV));
+    const can = new Request('https://x/api/billing/webhook', {
+      method: 'POST',
+      headers: { 'paypal-transmission-id': 'T2', 'paypal-transmission-time': '2', 'paypal-cert-url': 'c',
+        'paypal-auth-algo': 'a', 'paypal-transmission-sig': 's', 'paypal-event-type': 'BILLING.SUBSCRIPTION.CANCELLED' },
+      body: JSON.stringify({ event_type: 'BILLING.SUBSCRIPTION.CANCELLED', resource: { id: subId, custom_id: USER_ID } }),
+    });
+    const res = await webhookPost(makeCtx(can, db, PAYPAL_ENV));
+    const j = await res.json();
+    expect(j.received).toBe(true);
+    expect(db.tables.subscriptions.length).toBe(1);
+    expect(db.tables.subscriptions[0].plan).toBe('plus');
+    expect(db.tables.subscriptions[0].provider_sub_id).toBe(subId);
+    expect(db.tables.subscriptions[0].expires_at).toBeTruthy();
+    expect(db.tables.subscriptions[0].expires_at!).toBeLessThanOrEqual(Date.now() + 2000);
+  });
 });

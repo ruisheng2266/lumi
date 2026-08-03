@@ -203,6 +203,7 @@ export function PlusPanel() {
               </div>
               <p className="text-xs text-fog leading-relaxed">{t('plus.founderDesc')}</p>
               <p className="text-xs text-lavender-600">{t('plus.founderPrice')}</p>
+              <p className="text-[11px] text-fog leading-relaxed">{t('plus.founderSunset')}</p>
               {mode === 'founder_pending' ? (
                 <Button
                   variant="primary"

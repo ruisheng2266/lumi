@@ -1,7 +1,7 @@
 {
   "name": "lumi",
   "private": true,
-  "version": "0.7.5",
+  "version": "0.7.6",
   "type": "module",
   "description": "Lumi - 温柔、私密、只属于你的女性健康追踪工具",
   "scripts": {

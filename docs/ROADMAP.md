@@ -145,7 +145,7 @@ PRD §13 沿用了内部里程碑标签（V1 / V1.4 / V1.5），与 GitHub 实�
 
 - [x] **v0.4 优先级**：① 竞品导入 vs ② 特殊场景——两者均已在 v0.4 交付（获客杠杆 + 信任加固双覆盖）
 - [ ] **Plus 价格区间**：国内 ¥30–58/年 是否分档（如月度体验价）？
-- [ ] **创始终身 ¥98** 的"终身"范围是否按 `PRICING-STRATEGY.md` 的日落承诺条款执行（已定，待落地文案）？
+- [x] **创始终身 ¥98 日落承诺落地（2026-08-03，v0.7.6）**：终身范围按 `PRICING-STRATEGY.md` §4 日落承诺执行——设备端功能真终身，后端服务（同步 / AI / 共享）受停运预案保障。落地文案写入 `PlusPanel`（`founderDesc`/`founderSunset` 改为诚实表述）+ 关于页新增「停运预案（Sunset Commitment）」区块；`PRICING-STRATEGY.md` §4.3 原条款已发布到用户可见界面。
 - [x] **用户系统是自建 D1 还是第三方 BaaS**？已定：自建 Cloudflare D1（非 BaaS），Phase 1 已实现并上线 ✅
 - [ ] 是否接受「先发国际版（en 优先）再回国内」的节奏？
 - [ ] **Apple 登录激活（用户决定暂缓）**：代码已部署（v0.7.3）但暂不启用——用户当前为免费 Apple ID 未加入 Developer Program（$99/年，Sign in with Apple 必需）。待未来上架 iOS App 时一并注册，再按 `docs/APPLE-LOGIN.md` 第 2–3 步配 Services ID + Auth Key + 4 条 `wrangler secret put`。当前 Google 登录正常可用，不受影响。

@@ -7,7 +7,7 @@
  */
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { Heart, Shield, Brain, Database, Wrench, Users, Github, ArrowLeft, Sparkles } from 'lucide-react';
+import { Heart, Shield, Brain, Database, Wrench, Users, Github, ArrowLeft, Sparkles, Sunset } from 'lucide-react';
 import { Card, CardTitle } from '../shared/ui/Card';
 import { APP_VERSION, APP_LAST_UPDATED } from '../shared/version';
 
@@ -118,6 +118,34 @@ export function About() {
           <p className="text-xs text-fog">{t('about.accountFlow')}</p>
           <p className="text-xs text-fog">{t('about.accountPrivacy')}</p>
         </div>
+      </Card>
+
+      {/* 停运预案（日落承诺） */}
+      <Card>
+        <div className="flex items-start gap-3 mb-3">
+          <Sunset size={18} className="text-lavender-500 mt-0.5 shrink-0" />
+          <CardTitle>{t('about.sunsetTitle')}</CardTitle>
+        </div>
+        <p className="text-sm text-ink mb-3">{t('about.sunsetBody')}</p>
+        <ul className="space-y-2 text-sm text-ink">
+          <li className="flex gap-2">
+            <span className="text-lavender-500 shrink-0">·</span>
+            <span>{t('about.sunsetPoint1')}</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="text-lavender-500 shrink-0">·</span>
+            <span>{t('about.sunsetPoint2')}</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="text-lavender-500 shrink-0">·</span>
+            <span>{t('about.sunsetPoint3')}</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="text-lavender-500 shrink-0">·</span>
+            <span>{t('about.sunsetPoint4')}</span>
+          </li>
+        </ul>
+        <p className="text-xs text-fog mt-3 leading-relaxed">{t('about.sunsetClosing')}</p>
       </Card>
 
       {/* 技术栈 */}

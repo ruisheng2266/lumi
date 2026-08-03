@@ -4,6 +4,20 @@ Lumi 版本发布记录（逆向时间序）。早期版本（v0.2.0–v0.5.0）
 
 ---
 
+## [2026-08-03] v0.7.6 — 创始终身日落承诺落地文案
+
+**修正 + 新增：将「创始终身」的真实范围与停运预案发布到用户可见界面**
+- `src/shared/i18n/locales/{zh-CN,en}.ts`：
+  - `plus.founderDesc` 由「永久解锁所有 Plus 功能」改为诚实表述——设备端功能（记录/预测/洞察/导出/离线）真终身，后端服务（同步/AI/伴侣共享）在运营期间提供并受「停运预案」保障（对齐 `PRICING-STRATEGY.md` §4.1，消除原文案对后端功能的无条件终身承诺）。
+  - 新增 `plus.founderSunset`：创始终身卡片下方一行「停运预案」保障摘要 + 指向关于页。
+  - 新增 `about.sunsetTitle/Body/Point1-4/Closing`：关于页「停运预案（Sunset Commitment）」区块全文（提前≥6个月通知、开源/纯本地终版、按剩余时长退款、数据可导出）。
+- `src/shared/plus/PlusPanel.tsx`：Founder 卡片新增 `founderSunset` 提示行。
+- `src/pages/About.tsx`：新增「停运预案」卡片（Sunset 图标），i18n 驱动、中英文。
+- 关闭 ROADMAP §4 待定项「创始终身日落承诺落地文案」。
+- `tsc -b --noEmit` 通过，`vitest run` **163 passed**。
+
+---
+
 ## [2026-08-03] v0.7.5 — 打赏地区分流（国内 ¥ / 海外 $）
 
 **新增：打赏面板按地区分流主支付方式（纯前端、隐私优先）**

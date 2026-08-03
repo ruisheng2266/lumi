@@ -99,6 +99,7 @@
 - [ ] PlusPanel 显示「已激活 Plus」+ 到期时间
 - [ ] 查 D1 `subscriptions` 表确认写入 `plan=plus`、`provider=paypal`、`provider_sub_id` 为订阅 ID
 - [ ] 用 PayPal 后台的 **Webhook Simulator**（Live）或真实事件，确认 `BILLING.SUBSCRIPTION.ACTIVATED` 被收到且幂等（重复投递不重复开通）
+  > **实测结论（2026-08-03 下午）**：用官方 `simulate-event` API 成功发起模拟，PayPal 真实投递带签名头的事件到 `/api/billing/webhook`（事件 `WH-7768…`），证明**端点可达 + 真实验签通过 + 事件分发正常**。但 PayPal `simulate-event` **不接受自定义 `resource`**（硬塞任意 `resource` 均返回 `MALFORMED_REQUEST_JSON`，正确用法为 `{webhook_id, event_type, resource_version}`，resource 由模板生成），模板资源**无 `custom_id`** → 本端 `webhook.ts` 正确返回 `skipped: no_custom_id` 不落库（已查 D1 确认无新行）。故 simulate-event 能验证「验签+分发」，**无法验证「落库为 plus」**——此层由本地单测补齐（见 §8「Webhook 不花钱验证」）。
 - [ ] （可选）验证 Founder 一次性购买（`create-order` → `capture-order` → `PAYMENT.CAPTURE.COMPLETED` → `plan=founder`）
 - [ ] 验证激活码兑换（`/api/redeem`）仍可用（不依赖 PayPal）
 - [ ] **真实扣款确认**：首次 live 交易后到 PayPal 账户余额/对账单确认实际收款金额与币种正确
@@ -159,6 +160,12 @@
 **延后（④ 生产验证）：**
 - 用户决定用**另一全新账号**做真实付款测试（规避本机 `founder` 行被 `upsertSubscription` 覆盖成 `plus`、并避免误扣款）。当前 live 配置已就绪，新账号到位即可直接走 §4 验证。
 - 代码层已确认链路正确：`create-subscription` 读 `PAYPAL_PLUS_PLAN_ID`(live) + 把 `user_id` 写入 `custom_id` 回传；`webhook.ts` 随 `PAYPAL_MODE=live` 自动切 `api.paypal.com` 验签落库；激活时 `upsertSubscription(plus)` 先 `DELETE` 旧行再 `INSERT`。
+
+**Webhook 不花钱验证（2026-08-03 下午）：**
+- 用 PayPal 官方 `simulate-event` API 发起 `BILLING.SUBSCRIPTION.ACTIVATED` 模拟，PayPal 受理并真实投递带签名头事件到 `https://lumi365.com/api/billing/webhook`（事件 ID `WH-77687562XN25889J8-8Y6T55435R66168T6`，模板订阅 `I-BW452GLLEP1G`）。验证「端点可达 + 真实验签通过 + 事件分发」三层通 ✅。
+- 限制：PayPal `simulate-event` **不接受自定义 `resource`**（硬塞对象/字符串/最小字段均 `MALFORMED_REQUEST_JSON`）；正确用法 `{webhook_id, event_type, resource_version}`，resource 走模板。**模板无 `custom_id`** → 本端 `webhook.ts` 按设计 `skipped: no_custom_id` 不落库（防无主数据污染）。查 D1 `subscriptions` 表确认仅 founder 行、无新 plus 记录。
+- 落库逻辑用本地单测精确补齐：`functions/api/billing/billing.test.ts` 新增 `ACTIVATED→plan=plus`（`expires_at=next_billing_time`）与 `CANCELLED→过期`（仅当 `provider_sub_id` 匹配才过期，防误伤 founder）两用例，mock `verify-webhook-signature=SUCCESS`。`npx vitest run billing` → **16/16 通过**。提交 `97ba33c` 已 push。
+- 结论：**「webhook 验签 + 落库逻辑」已双重验证**（真实验签链路 + 单测精确落库）。唯一未覆盖的是「真实付款 → custom_id 由我们写入 → 指定账号落库为 plus」端到端层，需真实交易（任务 #75，等另一账号）。simulate-event 先天做不到此层。
 
 **尚未做（可选）：**
 - `ADMIN_CODE` 旋转（建议上线后换成新强随机值）。

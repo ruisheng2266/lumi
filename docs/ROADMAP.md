@@ -112,6 +112,12 @@ PRD §13 沿用了内部里程碑标签（V1 / V1.4 / V1.5），与 GitHub 实�
 > - **本次改动**：设置页「账号」区新增「用 Apple 登录」黑色按钮（lucide `Apple` 图标，跳 `/auth/apple/login` 服务端驱动流程）；`apple-callback.ts` 登录后跳 `/settings`；`wrangler.toml` 加公开变量 `APPLE_REDIRECT_URI`。后端 `apple-login.ts`/`apple-callback.ts`/`apple-jwt.ts`（PKCE + JWKS 验签 + 隐私中继兼容）与 `migrations/0002`（`users.apple_id` 列）早已就绪。
 > - **激活待办**：真实登录需用户在 Apple Developer 后台配置 Services ID + Auth Key，并用 `wrangler secret put` 设 4 个 secret（`APPLE_CLIENT_ID`/`APPLE_TEAM_ID`/`APPLE_KEY_ID`/`APPLE_P8`）。完整步骤见 **`docs/APPLE-LOGIN.md`**。
 > - 提交 `0d1508a`，tag `v0.7.3`，**`tsc` + `vite build` + apple 单测 3/3 全绿**。
+> - ⚠️ **后续 v0.7.4 已将「用 Apple 登录」按钮隐藏**（用户未加入 Apple Developer Program，暂不启用）。后端端点/迁移保持就绪，将来按 `docs/APPLE-LOGIN.md` 配好即可取消注释恢复按钮。
+
+> 📌 **v0.7.4 — 隐藏 Apple 登录按钮（2026-08-03，已 push + 部署）**：
+> - 用户决定暂不启用 Apple 登录（未加入 Developer Program，Sign in with Apple 必需 $99/年会员）。
+> - `src/pages/Settings.tsx`：Apple 按钮整段注释（代码保留便于恢复），移除未使用 `Apple` 图标 import（避免 CI `noUnusedLocals`）。Google 登录正常可用、不受影响。
+> - 提交 tag `v0.7.4`，**`tsc -b` + `vite build` 通过**。
 
 ### 🟣 v1.x+ — 生态扩展（混合层）
 | 方向 | 说明 |

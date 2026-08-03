@@ -16,6 +16,16 @@ Lumi 版本发布记录（逆向时间序）。早期版本（v0.2.0–v0.5.0）
 
 ---
 
+## [2026-08-03] v0.7.4 — 隐藏 Apple 登录按钮（暂缓未启用）
+
+**调整：设置页隐藏「用 Apple 登录」按钮**
+- 用户决定暂不启用 Apple 登录（未加入 Apple Developer Program，未来上架 iOS App 时按 `docs/APPLE-LOGIN.md` 第 2–3 步配好即可重新启用）。
+- `src/pages/Settings.tsx`：将 Apple 按钮整段注释（保留代码便于将来恢复），并移除未使用的 `Apple` 图标 import（避免 CI `noUnusedLocals` 报错）。Google 登录正常可用、不受影响。
+- 后端 `functions/auth/apple-*` + `apple-jwt.ts` 与 `migrations/0002`（apple_id 列）保持就绪，仅前端入口隐藏。
+- `tsc -b` + `vite build` 通过。
+
+---
+
 ## [2026-08-03] v0.7.3 — Apple 登录启用（前端 + 配置就绪）
 
 **新增：Sign in with Apple（代码层全部就绪，待 Apple 开发者凭证激活）**

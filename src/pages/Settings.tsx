@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useTranslation } from 'react-i18next';
-import { Download, Trash2, Info, LogIn, LogOut, Sun, Moon, Monitor, Upload, FileText, Plus, Apple } from 'lucide-react';
+import { Download, Trash2, Info, LogIn, LogOut, Sun, Moon, Monitor, Upload, FileText, Plus } from 'lucide-react';
 import { Card, CardTitle } from '../shared/ui/Card';
 import { Button } from '../shared/ui/Button';
 import { Sheet } from '../shared/ui/Sheet';
@@ -277,6 +277,7 @@ export function Settings() {
               <Button variant="primary" fullWidth leftIcon={<LogIn size={18} />} onClick={() => login('google')}>
                 {t('account.loginWithGoogle')}
               </Button>
+              {/* Apple 登录暂不启用（用户未加入 Apple Developer Program，按 docs/APPLE-LOGIN.md 第 2-3 步配好后可取消注释恢复）
               <Button
                 variant="apple"
                 fullWidth
@@ -287,6 +288,7 @@ export function Settings() {
               >
                 {t('account.loginWithApple')}
               </Button>
+              */}
             </div>
           )}
         </Card>

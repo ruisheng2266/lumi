@@ -4,6 +4,22 @@ Lumi 版本发布记录（逆向时间序）。早期版本（v0.2.0–v0.5.0）
 
 ---
 
+## [2026-08-03] v0.7.7 — Plus 月付 / 年付分档
+
+**新增：Plus 订阅支持月付与年付两档，降低决策门槛（沿用定价文档 §7 已决方案）**
+- `functions/utils/paypal.ts`：`PayPalConfig` 拆为 `plusPlanIdAnnual` / `plusPlanIdMonthly`，`buildPayPalConfig` 读 `PAYPAL_PLUS_PLAN_ID`（年付）与 `PAYPAL_PLUS_PLAN_ID_MONTHLY`（月付）。
+- `functions/api/billing/create-subscription.ts`：接收 `{ cycle: 'monthly' | 'annual' }`，按周期选对应 Plan；缺月付 Plan 返回 `paypal_plus_plan_missing`（503）。
+- `functions/api/billing/webhook.ts`：`ACTIVATED` 由 `resource.plan_id` 反推 `billing_cycle`（月付/年付），写入订阅行；`expireSubscription` 一并保留 `billing_cycle`。
+- `functions/utils/subscription-db.ts`：`SubscriptionRow`/`Entitlement` 新增 `billing_cycle`；`upsertSubscription` 入参增加 `billing_cycle`；`getSyncEntitlement` 回传周期。
+- `migrations/0007_billing_cycle.sql`：`subscriptions` 表 `ALTER TABLE ... ADD COLUMN billing_cycle TEXT`。
+- `src/shared/plus/store.ts`：权益 state 新增 `billingCycle`，随 `/api/entitlement` 透传。
+- `src/shared/plus/PlusPanel.tsx`：Plus 卡片改为「月付 / 年付」双入口，年付标「年付约省一半」、月付注「含 7 天免费试用」；按显示语言地区分流展示 ¥/$ 单一币种（与打赏一致）；当前方案标签显示周期。
+- `src/shared/i18n/locales/{zh-CN,en}.ts`：新增 `plus.plusMonthly/plusAnnual/plusMonthlyPrice{Domestic,Overseas}/plusAnnualPrice{Domestic,Overseas}/plusSaveHalf/plusTrialNote/subscribePlusMonthly/subscribePlusAnnual/plusCycle{Monthly,Annual}`。
+- `docs/GO-LIVE.md` §1.2/§2/§8：补「月付 Plan 创建 + `PAYPAL_PLUS_PLAN_ID_MONTHLY` 上传」步骤与待办；`docs/PRICING-STRATEGY.md` §7 标记分档已决。
+- 测试：`billing.test.ts` 新增月付选 Plan、webhook ACTIVATED 月付→`billing_cycle=monthly`；`fakeD1.ts` 适配 `billing_cycle`。`tsc -b`、`tsc -p tsconfig.functions.json`、`vite build` 全绿，`vitest run` **165 passed**。
+
+---
+
 ## [2026-08-03] v0.7.6 — 创始终身日落承诺落地文案
 
 **修正 + 新增：将「创始终身」的真实范围与停运预案发布到用户可见界面**

@@ -13,10 +13,14 @@ import { getKeyBackup } from './sync-db';
 
 export type Plan = 'free' | 'plus' | 'founder';
 
+/** Plus 的计费周期。founder / 激活码为 null（非循环订阅）。 */
+export type BillingCycle = 'monthly' | 'annual' | null;
+
 export interface SubscriptionRow {
   plan: Plan;
   provider: string | null;
   provider_sub_id: string | null;
+  billing_cycle: BillingCycle;
   expires_at: number | null;
   created_at: number;
 }
@@ -32,6 +36,8 @@ export interface ActivationCodeRow {
 export interface Entitlement {
   plan: Plan;
   expiresAt: number | null;
+  /** Plus 的计费周期（月付 / 年付）；非循环订阅为 null */
+  billingCycle: BillingCycle;
   /** 是否允许使用跨设备同步（已订阅，或祖父老用户） */
   syncEntitled: boolean;
 }
@@ -43,7 +49,7 @@ export async function getSubscription(
 ): Promise<SubscriptionRow | null> {
   return await db
     .prepare(
-      'SELECT plan, provider, provider_sub_id, expires_at, created_at FROM subscriptions WHERE user_id = ?',
+      'SELECT plan, provider, provider_sub_id, billing_cycle, expires_at, created_at FROM subscriptions WHERE user_id = ?',
     )
     .bind(userId)
     .first<SubscriptionRow>();
@@ -57,19 +63,21 @@ export async function upsertSubscription(
     plan: Plan;
     provider: string | null;
     provider_sub_id: string | null;
+    billing_cycle: BillingCycle;
     expires_at: number | null;
   },
 ): Promise<void> {
   await db.prepare('DELETE FROM subscriptions WHERE user_id = ?').bind(userId).run();
   await db
     .prepare(
-      'INSERT INTO subscriptions (user_id, plan, provider, provider_sub_id, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO subscriptions (user_id, plan, provider, provider_sub_id, billing_cycle, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
     )
     .bind(
       userId,
       data.plan,
       data.provider,
       data.provider_sub_id,
+      data.billing_cycle,
       data.expires_at,
       Date.now(),
     )
@@ -145,5 +153,5 @@ export async function getSyncEntitlement(
     if (kb) syncEntitled = true; // 祖父条款
   }
 
-  return { plan, expiresAt, syncEntitled };
+  return { plan, expiresAt, billingCycle: sub?.billing_cycle ?? null, syncEntitled };
 }

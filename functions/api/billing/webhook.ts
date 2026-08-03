@@ -48,6 +48,7 @@ async function expireSubscription(db: D1Database, userId: string, providerSubId:
       plan: existing.plan,
       provider: existing.provider,
       provider_sub_id: existing.provider_sub_id,
+      billing_cycle: existing.billing_cycle,
       expires_at: Date.now(), // 过期 → getSyncEntitlement 视为 free
     });
   }
@@ -130,12 +131,17 @@ export const onRequestPost: Handler = async (context) => {
           plan: 'founder',
           provider: 'paypal',
           provider_sub_id: orderId,
+          billing_cycle: null,
           expires_at: null,
         });
         break;
       }
       case 'BILLING.SUBSCRIPTION.ACTIVATED': {
         const subId = resource.id as string;
+        const planId = (resource.plan_id as string | undefined) || '';
+        // 由 PayPal Plan ID 反推计费周期（月付 / 年付）
+        const billingCycle: 'monthly' | 'annual' =
+          cfg.plusPlanIdMonthly && planId === cfg.plusPlanIdMonthly ? 'monthly' : 'annual';
         const nextBilling = (resource.billing_info as Record<string, unknown> | undefined)?.next_billing_time as
           | string
           | undefined;
@@ -144,6 +150,7 @@ export const onRequestPost: Handler = async (context) => {
           plan: 'plus',
           provider: 'paypal',
           provider_sub_id: subId,
+          billing_cycle: billingCycle,
           expires_at: expiresAt,
         });
         break;

@@ -50,11 +50,12 @@ export const onRequestPost: Handler = async (context) => {
       return json({ error: 'code_expired' }, { status: 410 });
     }
 
-    // 兑换：写订阅（永久，expires_at=null）+ 标记已用（幂等）
+    // 兑换：写订阅（永久，expires_at=null，billing_cycle=null 非循环）+ 标记已用（幂等）
     await upsertSubscription(context.env.DB, userId, {
       plan: row.plan,
       provider: 'code',
       provider_sub_id: codeHash,
+      billing_cycle: null,
       expires_at: null,
     });
     await redeemActivationCode(context.env.DB, userId, codeHash);

@@ -7,6 +7,7 @@ import { createFakeD1 } from '../../test/fakeD1';
 import type { D1Database } from '../../utils/types';
 import { onRequestGet as entitlementGet } from '../entitlement';
 import { onRequestPost as redeemPost } from './redeem';
+import { onRequestPost as createSubscriptionPost } from './create-subscription';
 import { onRequestPost as createOrderPost } from './create-order';
 import { onRequestPost as captureOrderPost } from './capture-order';
 import { onRequestPost as webhookPost } from './webhook';
@@ -68,6 +69,7 @@ const PAYPAL_ENV = {
   PAYPAL_CLIENT_SECRET: 'csecret',
   PAYPAL_MODE: 'sandbox',
   PAYPAL_PLUS_PLAN_ID: 'P-PLAN',
+  PAYPAL_PLUS_PLAN_ID_MONTHLY: 'P-PLAN-MONTHLY',
   PAYPAL_WEBHOOK_ID: 'WH-1',
   PUBLIC_URL: 'https://lumi365.com',
 };
@@ -312,6 +314,62 @@ describe('Phase 3 PayPal (mocked fetch)', () => {
     expect(db.tables.subscriptions.length).toBe(1);
     expect(db.tables.subscriptions[0].plan).toBe('plus');
     expect(db.tables.subscriptions[0].provider_sub_id).toBe('I-TESTSUB');
+    expect(db.tables.subscriptions[0].expires_at).toBe(Date.parse(next));
+  });
+
+  it('create-subscription monthly selects the monthly plan id', async () => {
+    let sentBody: any = null;
+    mockFetch((url, init) => {
+      if (url.includes('/v1/oauth2/token')) return { status: 200, body: { access_token: 'tok', expires_in: 3600 } };
+      if (url.includes('/v1/billing/subscriptions')) {
+        sentBody = JSON.parse(init.body);
+        return { status: 201, body: { id: 'I-NEWSUB', links: [{ rel: 'approve', href: 'https://approve' }] } };
+      }
+      return { status: 404, body: {} };
+    });
+    const res = await createSubscriptionPost(
+      makeCtx(
+        req('POST', 'https://x/api/billing/create-subscription', { cycle: 'monthly' }),
+        db,
+        PAYPAL_ENV,
+      ),
+    );
+    const j = await res.json();
+    expect(j.subscriptionId).toBe('I-NEWSUB');
+    expect(j.cycle).toBe('monthly');
+    expect(sentBody.plan_id).toBe('P-PLAN-MONTHLY');
+  });
+
+  it('webhook ACTIVATED (monthly plan) writes billing_cycle=monthly', async () => {
+    mockFetch((url) => {
+      if (url.includes('/v1/oauth2/token')) return { status: 200, body: { access_token: 'tok', expires_in: 3600 } };
+      if (url.includes('/verify-webhook-signature')) return { status: 200, body: { verification_status: 'SUCCESS' } };
+      return { status: 404, body: {} };
+    });
+    const next = '2026-09-03T10:00:00Z';
+    const event = {
+      event_type: 'BILLING.SUBSCRIPTION.ACTIVATED',
+      resource: {
+        id: 'I-MONTHLYSUB',
+        plan_id: 'P-PLAN-MONTHLY',
+        custom_id: USER_ID,
+        billing_info: { next_billing_time: next },
+      },
+    };
+    const r = new Request('https://x/api/billing/webhook', {
+      method: 'POST',
+      headers: {
+        'paypal-transmission-id': 'T1', 'paypal-transmission-time': '1', 'paypal-cert-url': 'c',
+        'paypal-auth-algo': 'a', 'paypal-transmission-sig': 's', 'paypal-event-type': 'BILLING.SUBSCRIPTION.ACTIVATED',
+      },
+      body: JSON.stringify(event),
+    });
+    const res = await webhookPost(makeCtx(r, db, PAYPAL_ENV));
+    const j = await res.json();
+    expect(j.received).toBe(true);
+    expect(db.tables.subscriptions.length).toBe(1);
+    expect(db.tables.subscriptions[0].plan).toBe('plus');
+    expect(db.tables.subscriptions[0].billing_cycle).toBe('monthly');
     expect(db.tables.subscriptions[0].expires_at).toBe(Date.parse(next));
   });
 

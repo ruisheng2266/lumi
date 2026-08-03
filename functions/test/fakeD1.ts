@@ -157,17 +157,17 @@ export function createFakeD1(): FakeD1 {
     }
     // Phase 3：subscription upsert（先删后插）
     if (/INSERT INTO subscriptions/.test(sql)) {
-      const [uid, plan, provider, psub, expires, created] = vals as [
-        string, string, string | null, string | null, number | null, number,
+      const [uid, plan, provider, psub, cycle, expires, created] = vals as [
+        string, string, string | null, string | null, string | null, number | null, number,
       ];
       tables.subscriptions = tables.subscriptions.filter((r) => r.user_id !== uid);
       tables.subscriptions.push({
-        user_id: uid, plan, provider, provider_sub_id: psub, expires_at: expires, created_at: created,
+        user_id: uid, plan, provider, provider_sub_id: psub, billing_cycle: cycle, expires_at: expires, created_at: created,
       });
       return [];
     }
     // Phase 3：subscription 查询（权益计算用）
-    if (/SELECT plan, provider, provider_sub_id, expires_at, created_at FROM subscriptions WHERE user_id = \?/.test(sql))
+    if (/SELECT plan, provider, provider_sub_id, billing_cycle, expires_at, created_at FROM subscriptions WHERE user_id = \?/.test(sql))
       return tables.subscriptions.filter((r) => r.user_id === vals[0]);
     // Phase 3：activation code 查询（按 hash）
     if (/SELECT code_hash, plan, expires_at, used_by, created_at FROM activation_codes WHERE code_hash = \?/.test(sql)) {

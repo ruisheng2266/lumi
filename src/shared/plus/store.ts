@@ -12,9 +12,12 @@ import { useAuth } from '../auth/store';
 
 export type Plan = 'free' | 'plus' | 'founder';
 
+export type BillingCycle = 'monthly' | 'annual' | null;
+
 export interface EntitlementState {
   plan: Plan;
   expiresAt: number | null;
+  billingCycle: BillingCycle;
   syncEntitled: boolean;
   loading: boolean;
   error: string | null;
@@ -24,6 +27,7 @@ export interface EntitlementState {
 export const useEntitlementStore = create<EntitlementState>((set) => ({
   plan: 'free',
   expiresAt: null,
+  billingCycle: null,
   syncEntitled: false,
   loading: false,
   error: null,
@@ -33,18 +37,20 @@ export const useEntitlementStore = create<EntitlementState>((set) => ({
       const res = await fetch('/api/entitlement', { credentials: 'include' });
       if (res.status === 401) {
         // 未登录：视为 free（无账号则无订阅）
-        set({ plan: 'free', expiresAt: null, syncEntitled: false, loading: false });
+        set({ plan: 'free', expiresAt: null, billingCycle: null, syncEntitled: false, loading: false });
         return;
       }
       if (!res.ok) throw new Error(`entitlement_failed (${res.status})`);
       const data = (await res.json()) as {
         plan?: Plan;
         expiresAt?: number | null;
+        billingCycle?: BillingCycle;
         syncEntitled?: boolean;
       };
       set({
         plan: data.plan ?? 'free',
         expiresAt: data.expiresAt ?? null,
+        billingCycle: data.billingCycle ?? null,
         syncEntitled: !!data.syncEntitled,
         loading: false,
       });
@@ -68,6 +74,7 @@ export function useEntitlement(): EntitlementState {
       useEntitlementStore.setState({
         plan: 'free',
         expiresAt: null,
+        billingCycle: null,
         syncEntitled: false,
         error: null,
       });

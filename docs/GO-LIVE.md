@@ -36,7 +36,14 @@
    - 价格：沿用定价文档（海外 **$19.99/年**，USD）；如需改价/币种在此调整
    - `billing_cycles`：`interval_unit=YEAR, interval_count=1`，`pricing_scheme.fixed_price.value` 填金额
    - `status=ACTIVE`
-3. 记下 **Live Plan ID**（以 `P-` 开头）
+3. 记下 **年付 Live Plan ID**（以 `P-` 开头）→ 写入 `PAYPAL_PLUS_PLAN_ID`
+4. （v0.7.7 月付档）再建一个 **月付 Plan**：
+   - 价格：**$2.99/月**，USD；`interval_unit=MONTH, interval_count=1`
+   - **含 7 天免费试用**：`billing_cycles[].pricing_scheme` 前加 `trial_...`（或商家后台开启 "Trial period" = 7 天），试用期内不扣款、可随时取消
+   - `status=ACTIVE`
+5. 记下 **月付 Live Plan ID** → 写入新增 Secret `PAYPAL_PLUS_PLAN_ID_MONTHLY`
+
+> 前端按 `PAYPAL_PLUS_PLAN_ID`（年付，主推）/ `PAYPAL_PLUS_PLAN_ID_MONTHLY`（月付，含试用）两个 Plan 分别创建订阅；webhook 收到 `ACTIVATED` 时由 `resource.plan_id` 反推 `billing_cycle` 落库。
 
 > 可复用沙箱建 Plan 的脚本思路（`CURL -u client_id:secret` 取 token → 建 product → 建 plan），仅把 token 端点与 API host 保持 `https://api.paypal.com`（去掉 `/sandbox`）。
 
@@ -64,7 +71,8 @@
 |---|---|---|
 | `PAYPAL_CLIENT_ID` | 沙箱 Client ID | **Live** Client ID |
 | `PAYPAL_CLIENT_SECRET` | 沙箱 Client Secret | **Live** Client Secret |
-| `PAYPAL_PLUS_PLAN_ID` | `P-95N33517HH960184ENJXAG2I`（沙箱） | **Live** Plan ID |
+| `PAYPAL_PLUS_PLAN_ID` | `P-95N33517HH960184ENJXAG2I`（沙箱） | **Live 年付** Plan ID |
+| `PAYPAL_PLUS_PLAN_ID_MONTHLY` | （沙箱无） | **Live 月付** Plan ID（含 7 天试用）|
 | `PAYPAL_WEBHOOK_ID` | `0A218640NP7504352`（沙箱） | **Live** Webhook ID |
 | `ADMIN_CODE` | 旧的（建议换） | **新的强随机值**（保护 `/api/admin/gen-codes`）|
 
@@ -140,7 +148,7 @@
 | `PAYPAL_MODE` | `sandbox` | `live`（已写入 `wrangler.toml` 并提交部署 `3abc8d0`） |
 | Client ID / Secret | 沙箱 App | **Live App**（已上传 Cloudflare Secret） |
 | Product ID | （沙箱未单独建） | `PROD-3S662145MM834030H` |
-| Plan ID | `P-95N33517HH960184ENJXAG2I` | `P-5HF36981A4341192LNJXXCIA`（年付 $19.99 USD, ACTIVE） |
+| Plan ID | `P-95N33517HH960184ENJXAG2I` | `P-5HF36981A4341192LNJXXCIA`（年付 $19.99 USD, ACTIVE）**+ 月付 Plan 待建** |
 | Webhook ID | `0A218640NP7504352` | `2RJ173369R8705234`（无 `WH-` 前缀，正常） |
 | 真实扣款 | ❌ 不会 | ✅ 会 |
 
@@ -159,7 +167,8 @@
 
 **延后（④ 生产验证）：**
 - 用户决定用**另一全新账号**做真实付款测试（规避本机 `founder` 行被 `upsertSubscription` 覆盖成 `plus`、并避免误扣款）。当前 live 配置已就绪，新账号到位即可直接走 §4 验证。
-- 代码层已确认链路正确：`create-subscription` 读 `PAYPAL_PLUS_PLAN_ID`(live) + 把 `user_id` 写入 `custom_id` 回传；`webhook.ts` 随 `PAYPAL_MODE=live` 自动切 `api.paypal.com` 验签落库；激活时 `upsertSubscription(plus)` 先 `DELETE` 旧行再 `INSERT`。
+- **月付档（v0.7.7）待补 Live 资源**：需在 PayPal Live 再建一个**月付 Plan（$2.99/月，含 7 天试用）**，并用 `wrangler pages secret put PAYPAL_PLUS_PLAN_ID_MONTHLY --project-name=lumi` 上传其 Plan ID。年付 Plan 已就绪可立即验证；月付入口在 secret 就位前点击会返回 503（`paypal_plus_plan_missing`），不影响年付与 Free 层。
+- 代码层已确认链路正确：`create-subscription` 读 `PAYPAL_PLUS_PLAN_ID` / `PAYPAL_PLUS_PLAN_ID_MONTHLY`(live) + 把 `user_id` 写入 `custom_id` 回传；`webhook.ts` 随 `PAYPAL_MODE=live` 自动切 `api.paypal.com` 验签落库，并由 `resource.plan_id` 反推 `billing_cycle`；激活时 `upsertSubscription(plus)` 先 `DELETE` 旧行再 `INSERT`。
 
 **Webhook 不花钱验证（2026-08-03 下午）：**
 - 用 PayPal 官方 `simulate-event` API 发起 `BILLING.SUBSCRIPTION.ACTIVATED` 模拟，PayPal 受理并真实投递带签名头事件到 `https://lumi365.com/api/billing/webhook`（事件 ID `WH-77687562XN25889J8-8Y6T55435R66168T6`，模板订阅 `I-BW452GLLEP1G`）。验证「端点可达 + 真实验签通过 + 事件分发」三层通 ✅。

@@ -18,8 +18,10 @@ export interface PayPalConfig {
   clientId: string;
   clientSecret: string;
   mode: PayPalMode;
-  /** Plus 订阅的 Plan ID（PayPal 后台创建后填入） */
-  plusPlanId?: string;
+  /** Plus 年付 Plan ID（PayPal 后台创建后填入，环境变量 PAYPAL_PLUS_PLAN_ID） */
+  plusPlanIdAnnual?: string;
+  /** Plus 月付 Plan ID（环境变量 PAYPAL_PLUS_PLAN_ID_MONTHLY） */
+  plusPlanIdMonthly?: string;
   /** Webhook ID（PayPal 后台创建 webhook 时给出），用于签名校验 */
   webhookId?: string;
   /** 站点公开 URL，用于拼接 return/cancel 回调 */
@@ -245,7 +247,8 @@ export function buildPayPalConfig(env: Record<string, unknown>): PayPalConfig | 
     clientId,
     clientSecret,
     mode,
-    plusPlanId: env.PAYPAL_PLUS_PLAN_ID as string | undefined,
+    plusPlanIdAnnual: env.PAYPAL_PLUS_PLAN_ID as string | undefined,
+    plusPlanIdMonthly: env.PAYPAL_PLUS_PLAN_ID_MONTHLY as string | undefined,
     webhookId: env.PAYPAL_WEBHOOK_ID as string | undefined,
     publicUrl,
   };

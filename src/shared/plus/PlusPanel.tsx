@@ -14,13 +14,27 @@ import { Card, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { useAuth } from '../auth/store';
 import { useEntitlement, useEntitlementStore } from './store';
+import { useLanguage } from '../i18n/useLanguage';
 
 type Mode = 'idle' | 'founder_pending' | 'plus_pending';
 
+type Region = 'domestic' | 'overseas';
+
+/**
+ * 地区分流：隐私优先，仅依据「显示语言」推断，不做 geo-IP / 不读 IP。
+ * zh-* 视为国内（展示 ¥ 价），其余视为海外（展示 $ 价）。
+ * Plus 实际均经 PayPal 以美元结算（与现有年付行为一致）。
+ */
+function regionFromLocale(locale: string): Region {
+  return locale.toLowerCase().startsWith('zh') ? 'domestic' : 'overseas';
+}
+
 export function PlusPanel() {
   const { t } = useTranslation();
+  const { locale } = useLanguage();
+  const region = regionFromLocale(locale);
   const user = useAuth((s) => s.user);
-  const { plan, expiresAt, loading: entLoading, refresh } = useEntitlement();
+  const { plan, expiresAt, billingCycle, loading: entLoading, refresh } = useEntitlement();
 
   const [mode, setMode] = useState<Mode>('idle');
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
@@ -89,11 +103,16 @@ export function PlusPanel() {
     }
   }
 
-  async function handleSubscribePlus() {
+  async function handleSubscribePlus(cycle: 'monthly' | 'annual') {
     setProcessing(true);
     setMessage(null);
     try {
-      const res = await fetch('/api/billing/create-subscription', { method: 'POST', credentials: 'include' });
+      const res = await fetch('/api/billing/create-subscription', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cycle }),
+      });
       const data = await res.json().catch(() => ({} as Record<string, unknown>));
       if (res.status === 503) throw new Error('paypal_plus_plan_missing');
       if (!res.ok) throw new Error((data.error as string) || 'billing_error');
@@ -153,7 +172,11 @@ export function PlusPanel() {
   }
 
   const planLabel =
-    plan === 'founder' ? t('plus.planFounder') : plan === 'plus' ? t('plus.planPlus') : t('plus.planFree');
+    plan === 'founder'
+      ? t('plus.planFounder')
+      : plan === 'plus'
+        ? `${t('plus.planPlus')} · ${billingCycle === 'monthly' ? t('plus.plusCycleMonthly') : t('plus.plusCycleAnnual')}`
+        : t('plus.planFree');
 
   return (
     <section>
@@ -227,15 +250,60 @@ export function PlusPanel() {
               )}
             </div>
 
-            {/* Plus 订阅 */}
-            <div className="rounded-lg border border-border p-3 space-y-2">
+            {/* Plus 订阅（月付 / 年付分档） */}
+            <div className="rounded-lg border border-border p-3 space-y-3">
               <div className="flex items-center gap-2">
                 <Sparkles size={16} className="text-lavender-500 shrink-0" />
                 <p className="text-sm font-medium">{t('plus.plus')}</p>
               </div>
               <p className="text-xs text-fog leading-relaxed">{t('plus.plusDesc')}</p>
-              <p className="text-xs text-lavender-600">{t('plus.plusPrice')}</p>
-              {mode === 'plus_pending' ? (
+
+              {/* 月付 */}
+              <div className="flex items-center justify-between gap-3 rounded-md bg-surface px-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium">{t('plus.plusMonthly')}</p>
+                  <p className="text-[11px] text-lavender-600">
+                    {region === 'domestic'
+                      ? t('plus.plusMonthlyPriceDomestic')
+                      : t('plus.plusMonthlyPriceOverseas')}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSubscribePlus('monthly')}
+                  disabled={processing || entLoading || mode === 'plus_pending'}
+                >
+                  {processing ? t('plus.processing') : t('plus.subscribePlusMonthly')}
+                </Button>
+              </div>
+
+              {/* 年付（主推） */}
+              <div className="flex items-center justify-between gap-3 rounded-md bg-surface px-3 py-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-medium">{t('plus.plusAnnual')}</p>
+                    <span className="rounded-full bg-lavender-100 px-1.5 py-0.5 text-[10px] text-lavender-600">
+                      {t('plus.plusSaveHalf')}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-lavender-600">
+                    {region === 'domestic'
+                      ? t('plus.plusAnnualPriceDomestic')
+                      : t('plus.plusAnnualPriceOverseas')}
+                  </p>
+                </div>
+                <Button
+                  variant="primary"
+                  onClick={() => handleSubscribePlus('annual')}
+                  disabled={processing || entLoading || mode === 'plus_pending'}
+                >
+                  {processing ? t('plus.processing') : t('plus.subscribePlusAnnual')}
+                </Button>
+              </div>
+
+              <p className="text-[11px] text-fog leading-relaxed">{t('plus.plusTrialNote')}</p>
+
+              {mode === 'plus_pending' && (
                 <Button
                   variant="ghost"
                   fullWidth
@@ -244,16 +312,6 @@ export function PlusPanel() {
                   disabled={processing}
                 >
                   {processing ? t('plus.processing') : t('plus.refreshStatus')}
-                </Button>
-              ) : (
-                <Button
-                  variant="ghost"
-                  fullWidth
-                  leftIcon={<Sparkles size={16} />}
-                  onClick={handleSubscribePlus}
-                  disabled={processing || entLoading}
-                >
-                  {processing ? t('plus.processing') : t('plus.subscribePlus')}
                 </Button>
               )}
             </div>

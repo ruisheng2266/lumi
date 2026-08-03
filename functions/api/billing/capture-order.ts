@@ -60,6 +60,7 @@ export const onRequestPost: Handler = async (context) => {
       plan: 'founder',
       provider: 'paypal',
       provider_sub_id: orderId,
+      billing_cycle: null,
       expires_at: null,
     });
 

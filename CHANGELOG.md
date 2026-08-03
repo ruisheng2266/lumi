@@ -16,6 +16,19 @@ Lumi 版本发布记录（逆向时间序）。早期版本（v0.2.0–v0.5.0）
 
 ---
 
+## [2026-08-03] v0.7.3 — Apple 登录启用（前端 + 配置就绪）
+
+**新增：Sign in with Apple（代码层全部就绪，待 Apple 开发者凭证激活）**
+- 前端：设置页「账号」区块新增「用 Apple 登录」黑色按钮（variant="apple"），点击跳转服务端端点 `/auth/apple/login`（Apple 为服务端驱动流程：服务端种 oauth_data cookie → 302 到 appleid.apple.com → 回调 `/auth/apple/callback` 验签+完成登录 → 跳回 `/settings`）。与 Google 的 SPA 流程解耦。
+- 后端：`functions/auth/apple-login.ts` + `apple-callback.ts`（PKCE 校验 + code 换 token + 用 Apple JWKS 验 id_token 签名/iss/aud/exp + 兼容隐私中继邮箱与首次授权 name）+ `functions/utils/apple-jwt.ts`（WebCrypto 签发 client_secret / 验 id_token，无第三方依赖）+ 单测 3 例。**均早已写好，本次仅接入前端与环境变量**。
+- 配置：`wrangler.toml [vars]` 新增公开常量 `APPLE_REDIRECT_URI`。`APPLE_CLIENT_ID` / `APPLE_TEAM_ID` / `APPLE_KEY_ID` / `APPLE_P8` 仍为 secret，需用户用 `wrangler secret put` 配置自己的 Apple 开发者凭证后方可真实登录（详见下方「待激活」）。
+- 数据层：`migrations/0002_add_apple_id.sql`（users.apple_id 列 + 唯一索引）已确认在远端 apply。
+- `tsc -b` + `tsc -p tsconfig.functions.json` + `vite build` 全绿；apple 单测 3/3 通过。
+
+**待激活（需用户操作）**：在 Apple Developer 后台创建 Services ID + 启用 Sign in with Apple + 创建 Auth Key 下载 .p8，再用 `wrangler secret put` 设 4 个 APPLE_* 密钥。未设密钥前按钮可见但点击会被 Apple 拒（client_id 缺失）。
+
+---
+
 ## [未发布] 生产闭环真机验证（待办）
 
 - PayPal 已切 Live（`PAYPAL_MODE=live`，2026-08-03 提交 `3abc8d0` 部署），真实扣款已开启。

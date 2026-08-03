@@ -109,6 +109,7 @@ export const onRequestPost: Handler = async (context) => {
         picture: null,
       },
       secure,
+      '/settings',
     );
   } catch (err) {
     console.error('Apple callback error:', err);

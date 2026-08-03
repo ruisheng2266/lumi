@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useTranslation } from 'react-i18next';
-import { Download, Trash2, Info, LogIn, LogOut, Sun, Moon, Monitor, Upload, FileText, Plus } from 'lucide-react';
+import { Download, Trash2, Info, LogIn, LogOut, Sun, Moon, Monitor, Upload, FileText, Plus, Apple } from 'lucide-react';
 import { Card, CardTitle } from '../shared/ui/Card';
 import { Button } from '../shared/ui/Button';
 import { Sheet } from '../shared/ui/Sheet';
@@ -277,8 +277,16 @@ export function Settings() {
               <Button variant="primary" fullWidth leftIcon={<LogIn size={18} />} onClick={() => login('google')}>
                 {t('account.loginWithGoogle')}
               </Button>
-              {/* Apple 登录推迟到 iOS App Store 上架前再启用（上架硬要求）；
-                  对应 endpoints/functions/auth/apple-* 与 users.apple_id 列已就绪，届时仅设 APPLE_* secret 即可。 */}
+              <Button
+                variant="apple"
+                fullWidth
+                leftIcon={<Apple size={18} />}
+                onClick={() => {
+                  window.location.href = '/auth/apple/login';
+                }}
+              >
+                {t('account.loginWithApple')}
+              </Button>
             </div>
           )}
         </Card>

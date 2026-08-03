@@ -4,6 +4,18 @@ Lumi 版本发布记录（逆向时间序）。早期版本（v0.2.0–v0.5.0）
 
 ---
 
+## [2026-08-03] v0.7.5 — 打赏地区分流（国内 ¥ / 海外 $）
+
+**新增：打赏面板按地区分流主支付方式（纯前端、隐私优先）**
+- `src/shared/donate/DonatePanel.tsx`：新增 `regionFromLocale()`，依据「显示语言」推断地区（zh-* → 国内；其余 → 海外），**不做 geo-IP / 不读取 IP**，与产品隐私定位一致。
+- 地区对应支付方式置顶高亮：国内 = 微信/支付宝（¥）在前，海外 = PayPal（$）在前；另一种方式始终保留在「其他支付方式」分区（虚线分隔），方便跨地区用户。
+- 切换设置中的显示语言会同步改变分流结果（依赖 `useLanguage` 的响应式 locale）。
+- 新增 i18n：`donate.regionDomestic` / `donate.regionOverseas` / `donate.regionAuto`（自动分流提示）/ `donate.otherMethods`（中英文）。
+- 后端/支付链路无改动；`tsc -b` + `vite build` 通过，全量 `vitest run` **163 passed**。
+- 关闭 ROADMAP / GO-LIVE 的「地区分流（可选）」待办项。
+
+---
+
 ## [2026-08-03] v0.7.2 — 打赏匿名聚合统计（看板）
 
 **新增：打赏后端匿名聚合统计（仅 PayPal 路径，零 PII）**
@@ -43,7 +55,7 @@ Lumi 版本发布记录（逆向时间序）。早期版本（v0.2.0–v0.5.0）
 
 - PayPal 已切 Live（`PAYPAL_MODE=live`，2026-08-03 提交 `3abc8d0` 部署），真实扣款已开启。
 - **真实付款验证延后**：待使用另一全新账号走一遍 Plus 订阅（规避本机 `founder` 行被 `upsertSubscription` 覆盖、避免误扣款）。详见 `docs/GO-LIVE.md` §4 / §8。
-- 待办：webhook 幂等复验、激活码兑换真机验证、可选 `ADMIN_CODE` 旋转、地区分流（国内 ¥ / 海外 $）。
+- 待办：webhook 幂等复验、激活码兑换真机验证（地区分流已于 v0.7.5 实现）。
 
 ---
 

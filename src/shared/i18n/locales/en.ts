@@ -469,6 +469,10 @@ common: {
       thanks: 'Thank you for your support 💜',
       thanksReturn: 'Completed payment? Tap here',
       supportedBadge: '💜 Supported',
+      regionDomestic: 'Domestic (China)',
+      regionOverseas: 'Overseas',
+      regionAuto: 'Auto-routed by your language to “{region}” as the primary method',
+      otherMethods: 'Other payment methods',
       redLineNote: 'Tipping is voluntary support — it is not a Lumi Plus purchase and unlocks no extra features.',
     },
     plus: {

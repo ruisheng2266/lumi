@@ -513,6 +513,10 @@ common: {
       thanks: '感谢你的支持 💜',
       thanksReturn: '已完成支付？点击这里',
       supportedBadge: '💜 已支持',
+      regionDomestic: '国内',
+      regionOverseas: '海外',
+      regionAuto: '已根据你使用的语言自动分流到「{region}」主支付方式',
+      otherMethods: '其他支付方式',
       redLineNote: '打赏是自愿支持，不等于购买 Lumi Plus，不获得任何额外功能。',
     },
     plus: {

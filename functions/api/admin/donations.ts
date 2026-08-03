@@ -76,6 +76,7 @@ export const onRequestGet: Handler = async (context) => {
              COALESCE(SUM(amount), 0) AS total_amount
            FROM donations_aggregate`,
         )
+        .bind()
         .first<TotalRow>()) ?? { count: 0, total_usd: 0, total_amount: 0 };
 
     const last30 =

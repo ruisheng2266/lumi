@@ -107,6 +107,12 @@ PRD §13 沿用了内部里程碑标签（V1 / V1.4 / V1.5），与 GitHub 实�
 > - **范围**：仅覆盖海外 PayPal 捐赠；国内微信/支付宝扫码 Lumi 后端无事件、不在统计内（只能在你自己的微信/支付宝 App 看）。
 > - **文档**：`docs/DONATION.md` §5.4/§8/§12 同步改为「匿名聚合统计」；提交 `1806791` 之后；**163 测试 + `tsc -b` + `vite build` 全绿**；版本升 v0.7.2（tag `v0.7.2`）。
 
+> 📌 **v0.7.3 — Apple 登录前端 + 配置就绪（2026-08-03，已 push + 部署）**：
+> - **背景**：原 Phase 1 账号系统仅 Google 对外；Apple 登录端点/迁移/单测早已写好，但推迟启用（等 App Store 上架）。用户决定提前启用 Web 端 Apple 登录。
+> - **本次改动**：设置页「账号」区新增「用 Apple 登录」黑色按钮（lucide `Apple` 图标，跳 `/auth/apple/login` 服务端驱动流程）；`apple-callback.ts` 登录后跳 `/settings`；`wrangler.toml` 加公开变量 `APPLE_REDIRECT_URI`。后端 `apple-login.ts`/`apple-callback.ts`/`apple-jwt.ts`（PKCE + JWKS 验签 + 隐私中继兼容）与 `migrations/0002`（`users.apple_id` 列）早已就绪。
+> - **激活待办**：真实登录需用户在 Apple Developer 后台配置 Services ID + Auth Key，并用 `wrangler secret put` 设 4 个 secret（`APPLE_CLIENT_ID`/`APPLE_TEAM_ID`/`APPLE_KEY_ID`/`APPLE_P8`）。完整步骤见 **`docs/APPLE-LOGIN.md`**。
+> - 提交 `0d1508a`，tag `v0.7.3`，**`tsc` + `vite build` + apple 单测 3/3 全绿**。
+
 ### 🟣 v1.x+ — 生态扩展（混合层）
 | 方向 | 说明 |
 | --- | --- |
@@ -136,3 +142,4 @@ PRD §13 沿用了内部里程碑标签（V1 / V1.4 / V1.5），与 GitHub 实�
 - [ ] **创始终身 ¥98** 的"终身"范围是否按 `PRICING-STRATEGY.md` 的日落承诺条款执行（已定，待落地文案）？
 - [x] **用户系统是自建 D1 还是第三方 BaaS**？已定：自建 Cloudflare D1（非 BaaS），Phase 1 已实现并上线 ✅
 - [ ] 是否接受「先发国际版（en 优先）再回国内」的节奏？
+- [ ] **Apple 登录激活**：代码已部署（v0.7.3），待 Apple 开发者凭证 + 4 条 `wrangler secret put`（详见 `docs/APPLE-LOGIN.md` 第 2–3 步）

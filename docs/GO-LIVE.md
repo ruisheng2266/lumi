@@ -72,7 +72,7 @@
 | `PAYPAL_CLIENT_ID` | 沙箱 Client ID | **Live** Client ID |
 | `PAYPAL_CLIENT_SECRET` | 沙箱 Client Secret | **Live** Client Secret |
 | `PAYPAL_PLUS_PLAN_ID` | `P-95N33517HH960184ENJXAG2I`（沙箱） | **Live 年付** Plan ID |
-| `PAYPAL_PLUS_PLAN_ID_MONTHLY` | （沙箱无） | **Live 月付** Plan ID（含 7 天试用）|
+| `PAYPAL_PLUS_PLAN_ID_MONTHLY` | （沙箱无） | **Live 月付** Plan ID `P-3VB87838PS565850CNJYLD7I`（含 7 天试用，2026-08-03 创建）|
 | `PAYPAL_WEBHOOK_ID` | `0A218640NP7504352`（沙箱） | **Live** Webhook ID |
 | `ADMIN_CODE` | 旧的（建议换） | **新的强随机值**（保护 `/api/admin/gen-codes`）|
 
@@ -167,7 +167,7 @@
 
 **延后（④ 生产验证）：**
 - 用户决定用**另一全新账号**做真实付款测试（规避本机 `founder` 行被 `upsertSubscription` 覆盖成 `plus`、并避免误扣款）。当前 live 配置已就绪，新账号到位即可直接走 §4 验证。
-- **月付档（v0.7.7）待补 Live 资源**：需在 PayPal Live 再建一个**月付 Plan（$2.99/月，含 7 天试用）**，并用 `wrangler pages secret put PAYPAL_PLUS_PLAN_ID_MONTHLY --project-name=lumi` 上传其 Plan ID。年付 Plan 已就绪可立即验证；月付入口在 secret 就位前点击会返回 503（`paypal_plus_plan_missing`），不影响年付与 Free 层。
+- **月付档（v0.7.7）Live 资源已补齐**（2026-08-03）：已在 PayPal Live 用 Product `PROD-3S662145MM834030H` 创建月付 Plan `P-3VB87838PS565850CNJYLD7I`（7 天 $0 试用 → $2.99/月，无限期），并 `wrangler pages secret put PAYPAL_PLUS_PLAN_ID_MONTHLY` 上传；Cloudflare 已重部署，月付按钮即生效。年付 Plan（`P-5HF36981A4341192LNJXXCIA`）与 Free 层不受影响。
 - 代码层已确认链路正确：`create-subscription` 读 `PAYPAL_PLUS_PLAN_ID` / `PAYPAL_PLUS_PLAN_ID_MONTHLY`(live) + 把 `user_id` 写入 `custom_id` 回传；`webhook.ts` 随 `PAYPAL_MODE=live` 自动切 `api.paypal.com` 验签落库，并由 `resource.plan_id` 反推 `billing_cycle`；激活时 `upsertSubscription(plus)` 先 `DELETE` 旧行再 `INSERT`。
 
 **Webhook 不花钱验证（2026-08-03 下午）：**

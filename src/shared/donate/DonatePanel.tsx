@@ -2,7 +2,7 @@
  * src/shared/donate/DonatePanel.tsx
  * 打赏（Donation）面板：面向所有用户（含未登录）。
  * 海外 PayPal 一次性捐赠（复用 /api/billing/create-donation + capture-donation），
- * 国内微信/支付宝收款码（纯前端展示占位图）。打赏不解锁任何功能，
+ * 国内微信/支付宝收款码（真实收款码图片）。打赏不解锁任何功能，
  * 成功后本地写入「💜 已支持」标记（localStorage，明确不解锁功能）。
  */
 import { useState, useEffect } from 'react';
@@ -15,8 +15,8 @@ import { Sheet } from '../ui/Sheet';
 const AMOUNTS = ['0.5', '1', '3', '5'];
 const SUPPORTED_KEY = 'lumi_donation_supported';
 const QR: Record<'wechat' | 'alipay', string> = {
-  wechat: '/donate/wechat.svg',
-  alipay: '/donate/alipay.svg',
+  wechat: '/donate/wechat.png',
+  alipay: '/donate/alipay.jpg',
 };
 
 export function DonatePanel() {

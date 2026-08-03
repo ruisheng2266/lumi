@@ -12,24 +12,6 @@ import { onRequestPost as webhookPost } from './webhook';
 const USER_ID = 'user-1';
 const SESSION_ID = 'sess-1';
 
-function makeBucket(): { _store: Map<string, Uint8Array>; put: any; get: any; delete: any } {
-  const store = new Map<string, Uint8Array>();
-  return {
-    _store: store,
-    async put(key: string, value: any) {
-      store.set(key, value instanceof Uint8Array ? value : new TextEncoder().encode(String(value)));
-      return { etag: 'x' };
-    },
-    async get(key: string) {
-      const v = store.get(key);
-      return v ? { key, arrayBuffer: async () => v.slice().buffer as ArrayBuffer } : null;
-    },
-    async delete(key: string) {
-      store.delete(key);
-    },
-  };
-}
-
 function makeCtx(req: Request, db: D1Database, env: Record<string, unknown> = {}) {
   return {
     request: req,

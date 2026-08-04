@@ -293,6 +293,7 @@ common: {
         invited: '已发送邀请，等待对方接受',
         accepted: '已接受共享，开始同步',
         revoked: '已撤销对方的访问，旧数据已被重新加密',
+        scopeUpdated: '共享范围已更新，数据已重新同步',
       },
       inviteTitle: '邀请伴侣',
       emailPlaceholder: '伴侣的账号邮箱',

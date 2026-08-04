@@ -71,7 +71,7 @@ interface ShareState {
   pushShared: (vaultId: string) => Promise<void>;
   pullShared: (vaultId: string) => Promise<void>;
   revoke: (vaultId: string) => Promise<void>;
-  setScope: (vaultId: string, scope: ShareScope) => void;
+  setScope: (vaultId: string, scope: ShareScope) => Promise<void>;
   getScope: (vaultId: string) => ShareScope;
   clearNotice: () => void;
 }
@@ -106,6 +106,13 @@ export function inScope(recordId: string, scope: ShareScope): boolean {
   if (scope === 'symptoms') return type === 'period' || type === 'dailyLog';
   // all：经期 + 每日记录 + 档案 + 生活事件（不含本机设置 / 洞察偏好）
   return type === 'period' || type === 'dailyLog' || type === 'profile' || type === 'lifeEvent';
+}
+
+/** 某范围覆盖的记录类型集合（供范围变更时计算「要删除的残留类型」） */
+function scopeTypes(scope: ShareScope): Set<string> {
+  if (scope === 'periods') return new Set(['period']);
+  if (scope === 'symptoms') return new Set(['period', 'dailyLog']);
+  return new Set(['period', 'dailyLog', 'profile', 'lifeEvent']);
 }
 
 async function api(path: string, init?: RequestInit): Promise<Response> {
@@ -360,9 +367,61 @@ export const useShare = create<ShareState>((set, get) => ({
     }
   },
 
-  setScope: (vaultId: string, scope: ShareScope) => {
+  /**
+   * 变更共享范围。除更新本地偏好外，还会**立即重新同步**：
+   *  - 放大范围：把新范围内全部本地记录重新加密推送（补齐此前未推的历史 blob）；
+   *  - 缩小范围：对「旧范围有、新范围没有」的记录类型发墓碑删除，清掉服务端残留。
+   * 这样伴侣拉取后看到的内容始终与当前范围一致，杜绝「改了范围却没重推」的暗病。
+   */
+  setScope: async (vaultId: string, scope: ShareScope) => {
+    const oldScope = get().scopes[vaultId] ?? readScope(vaultId);
     writeScope(vaultId, scope);
     set((s) => ({ scopes: { ...s.scopes, [vaultId]: scope } }));
+    if (oldScope === scope) return;
+
+    const v = get().vaults.find((x) => x.vaultId === vaultId);
+    if (!v || v.status !== 'active') return; // 未生效（pending）时仅保存范围，待接受后首次 push 生效
+
+    set({ loading: true, error: null });
+    try {
+      const key = await ensureSharedKey(v);
+      const local = await collectLocalRecords();
+      const records: Array<{ recordId: string; updatedAt: number; blob?: string; hmac?: string; deleted?: boolean }> = [];
+
+      // 1) 新范围内全部记录重新推送（放大范围时补齐原本未推的历史 blob）
+      for (const r of local) {
+        if (!inScope(r.recordId, scope)) continue;
+        const { blob, hmac } = await encryptRecord(key, r.data);
+        records.push({ recordId: r.recordId, updatedAt: r.updatedAt, blob, hmac });
+      }
+
+      // 2) 旧范围有、新范围没有的记录类型 → 墓碑删除（缩小范围时清掉残留 blob）
+      const removed = [...scopeTypes(oldScope)].filter((t) => !scopeTypes(scope).has(t));
+      if (removed.length) {
+        const removedSet = new Set(removed);
+        for (const r of local) {
+          const type = r.recordId.split(':')[0];
+          if (removedSet.has(type)) {
+            records.push({ recordId: r.recordId, updatedAt: Date.now(), deleted: true });
+          }
+        }
+      }
+
+      if (records.length) {
+        const res = await api(`/api/share/sync?vaultId=${encodeURIComponent(vaultId)}`, {
+          method: 'PUT',
+          body: JSON.stringify({ records }),
+        });
+        if (!res.ok) throw new Error(await errorOf(res, 'scope_push_failed'));
+      }
+      set((s) => ({
+        loading: false,
+        lastPushAt: { ...s.lastPushAt, [vaultId]: Date.now() },
+        notice: 'scope_updated',
+      }));
+    } catch (e) {
+      set({ loading: false, error: (e as Error).message || 'scope_push_failed' });
+    }
   },
 
   getScope: (vaultId: string) => get().scopes[vaultId] ?? readScope(vaultId),

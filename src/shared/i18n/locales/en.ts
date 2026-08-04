@@ -249,6 +249,7 @@ common: {
         invited: 'Invitation sent, waiting for them to accept',
         accepted: 'Shared, syncing now',
         revoked: 'Revoked their access; old data has been re-encrypted',
+        scopeUpdated: 'Share scope updated; data re-synced',
       },
       inviteTitle: 'Invite a partner',
       emailPlaceholder: "Partner's account email",

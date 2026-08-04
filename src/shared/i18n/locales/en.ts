@@ -290,6 +290,16 @@ common: {
       summaryLogs_one: '1 log synced, latest {date}',
       summaryLogs_other: '{count} logs synced, latest {date}',
       readOnlyHint: 'This is a read-only view of your partner\'s share; it is never written to your local records.',
+      // 2026-08-04 "free partner" fix: free partners set a share passphrase before receiving
+      sharePassphraseDesc: 'To receive a share, set a "share passphrase" (unrelated to the sync passphrase). It only protects your sharing key; Lumi cannot read it.',
+      sharePassphrasePlaceholder: 'Share passphrase',
+      confirmPassphrasePlaceholder: 'Confirm share passphrase',
+      setupShareKey: 'Set share passphrase & get ready',
+      shareKeyReady: 'Share passphrase is ready; you can now receive shares.',
+      wrongSharePassphrase: 'Wrong share passphrase, please retry',
+      passphraseRequired: 'Please enter a share passphrase',
+      passphraseMismatch: 'The two passphrases do not match',
+      setupShareKeyFailed: 'Failed to set share passphrase, please retry',
     },
     overview: {
       title: 'Stats',

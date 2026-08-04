@@ -15,6 +15,7 @@ import { create } from 'zustand';
 import { db } from '../db/client';
 import {
   bytesToB64,
+  b64ToBytes,
   randomSalt,
   derivePassphraseKey,
   deriveRecoveryKey,
@@ -160,6 +161,61 @@ export function getUserPrivateKey(): CryptoKey | null {
 /** 当前会话的公钥（base64 SPKI），主要用于自检 */
 export function getUserPublicKeyB64(): string | null {
   return userPublicKeyB64;
+}
+
+/**
+ * Phase 4（2026-08-04 修复「伴侣免费」BLOCKER）：为**未启用 E2EE 同步的免费伴侣**生成共享密钥对。
+ * 私钥不再依赖同步 vault 密钥，而是由用户自设的「共享口令」PBKDF2 派生密钥包裹，上报 share/keys。
+ * 这样免费伴侣无需购买 Plus 同步也能接收伴侣共享（零知识：私钥密文服务端不可解）。
+ */
+export async function setupShareKeypair(passphrase: string): Promise<void> {
+  const kp = await generateUserKeyPair();
+  const salt = randomSalt();
+  const wrapKey = await derivePassphraseKey(passphrase, salt);
+  const wrappedPriv = await wrapPrivateKey(kp.privateKey, wrapKey);
+  const res = await fetch('/api/share/keys', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      publicKey: kp.publicKeySpkiB64,
+      wrappedPrivateKey: wrappedPriv,
+      privateKeySalt: bytesToB64(salt),
+    }),
+  });
+  if (!res.ok) {
+    let detail = `share_keys_upload_failed (${res.status})`;
+    try {
+      const b = await res.json();
+      if (b.error) detail = `share_keys_upload_failed: ${b.error}`;
+    } catch { /* ignore */ }
+    throw new Error(detail);
+  }
+  userPrivateKey = kp.privateKey;
+  userPublicKeyB64 = kp.publicKeySpkiB64;
+}
+
+/**
+ * 用「共享口令」解开此前上传的共享私钥（刷新页面后重入）。服务端无 key_backup 时仍会返回
+ * 共享密钥材料（见 sync-setup GET 修复），故免费伴侣可正常解锁。
+ *  - 服务端无密钥材料 → 抛 'no_remote_share_key'（调用方应改走 setupShareKeypair）
+ *  - 口令错误（解不开）→ 抛 'wrong_share_passphrase'
+ */
+export async function unlockShareKeypair(passphrase: string): Promise<void> {
+  const res = await fetch('/api/sync-setup', { credentials: 'include' });
+  const data = await res.json();
+  if (!data.publicKey || !data.wrappedPrivateKey || !data.privateKeySalt) {
+    throw new Error('no_remote_share_key');
+  }
+  const salt = b64ToBytes(data.privateKeySalt);
+  const wrapKey = await derivePassphraseKey(passphrase, salt);
+  try {
+    const priv = await unwrapPrivateKey(data.wrappedPrivateKey, wrapKey);
+    userPrivateKey = priv;
+    userPublicKeyB64 = data.publicKey;
+  } catch {
+    throw new Error('wrong_share_passphrase');
+  }
 }
 
 function schedulePush(): void {

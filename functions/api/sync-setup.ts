@@ -40,13 +40,14 @@ export const onRequestGet: Handler = async (context) => {
     if (!userId) return json({ error: 'unauthorized' }, { status: 401 });
 
     const backup = await getKeyBackup(context.env.DB, userId);
-    if (!backup) return json({ initialized: false });
     // wrapped_vault_key / salt 是「passphrase 加密的密文」，对登录用户可见不破坏零知识
     const keys = await getUserKeyMaterial(context.env.DB, userId);
+    // Phase 4（2026-08-04 修复）：即使未启用 E2EE 同步（无 key_backup），仍返回共享密钥材料，
+    // 使免费伴侣刷新后能用共享口令重新解开私钥（initialized 仅反映同步 vault 是否初始化）。
     return json({
-      initialized: true,
-      wrappedVaultKey: backup.wrapped_vault_key,
-      salt: backup.salt,
+      initialized: !!backup,
+      wrappedVaultKey: backup?.wrapped_vault_key ?? null,
+      salt: backup?.salt ?? null,
       // 共享密钥材料：public_key 明文无碍；wrapped_private_key/salt 是口令加密密文，对登录用户可见不破坏零知识
       publicKey: keys?.publicKey ?? null,
       wrappedPrivateKey: keys?.wrappedPrivateKey ?? null,

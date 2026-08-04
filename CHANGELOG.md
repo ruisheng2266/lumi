@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.8.1 — 修复「伴侣免费」阻断（Phase 4 收口）· 2026-08-04
+
+**修复 · 免费伴侣无法接收共享（BLOCKER）**
+- 问题：原实现要求伴侣必须启用付费的 E2EE 同步才能生成共享密钥对，导致新免费账号看不到接受按钮、无法接受共享，「伴侣免费」承诺落空（仅祖父化老用户能碰巧走通）。
+- 修复：
+  - `functions/api/share/keys.ts` **移除 `syncEntitled` 门控**：任何登录用户均可上传共享密钥对（公开公钥 + 口令包裹的私钥，零知识）。
+  - `functions/api/sync-setup.ts` GET 修复：免费用户（无 `key_backup`）也能取回共享密钥材料，便于刷新后用共享口令重新解锁。
+  - 新增 `setupShareKeypair(passphrase)` / `unlockShareKeypair(passphrase)`：免费伴侣用独立的「共享口令」PBKDF2 包裹私钥，与同步口令互不干扰；已启用同步的用户仍走原 vault 密钥包裹路径（口令重置不失效）。
+  - `SharePanel` 放开 `ready` 门控：免费伴侣侧显示「设置共享口令」卡与接受表单；仅「发起共享」仍要求 Plus（保持创建者发起权）。
+
+**文档**
+- `docs/PHASE4-E2E-CHECKLIST.md`：新增两账号联调 Checklist，并标注此 BLOCKER 已修复。
+- `docs/PHASE4-SHARING.md §13.2`：更新私钥包裹方式的两条路径说明。
+
+---
+
 ## v0.8.0 — 伴侣加密共享（Phase 4）· 2026-08-03
 
 **新增 · 伴侣加密共享（零知识）**

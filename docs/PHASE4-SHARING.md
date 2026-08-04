@@ -183,11 +183,13 @@ Phase 4 已按本设计落地并随 **v0.8.0** 发布。以下记录实现时相
 - **理由**：避免两个人的健康数据互相污染（伴侣本地主库只该有自己的记录）；v1 把冲突面降到零，也符合「共享是给伴侣看、不是合著一本账」的真实使用场景。
 - **影响**：§7 的「字段级合并 / 同记录并发」问题在单向模型下自然消失；后续若要做双向，再评估 §7 的字段级 LWW。
 
-### 13.2 关键偏差：私钥由 vault 密钥包裹（非 passphrase 派生密钥）
+### 13.2 关键偏差：私钥包裹方式（vault 密钥 / 共享口令，按用户类型分两条路径）
 - **原设计（§3.1）**：私钥用 passphrase 派生密钥包裹（与 `key_backup` 并列）。
-- **实际实现**：`wrapPrivateKey(privateKey, vaultKey)`，包裹盐复用 `vaultSalt`；`store.ts` 的 `restoreOrCreateUserKeys` 在解锁同步后用 vault 密钥解开。
-- **理由**：重置同步口令（用恢复码）会换 passphrase 派生密钥，但 **vault 密钥本身不变**（恢复码直接解开 vault 密钥）。若私钥绑在 passphrase 派生密钥上，重置口令会让已建立的共享全部失效；绑在 vault 密钥上则共享在口令重置后依然有效，体验更连贯。
-- **迁移 0008 注释**中「私钥用同步口令派生的密钥包裹」一句措辞不精确——实际包裹密钥是 AES-GCM vault 密钥（其 salt 即 vaultSalt）。存储列（`wrapped_private_key` / `private_key_salt`）不变。
+- **实际实现（分两类用户）**：
+  - **已启用 E2EE 同步的用户**：`wrapPrivateKey(privateKey, vaultKey)`，包裹盐复用 `vaultSalt`；`store.ts` 的 `restoreOrCreateUserKeys` 在解锁同步后用 vault 密钥解开。理由：重置同步口令（恢复码）会换 passphrase 派生密钥，但 **vault 密钥本身不变**，故绑 vault 密钥可使已建立的共享在口令重置后依然有效。
+  - **未启用同步的免费伴侣（2026-08-04 修复「伴侣免费」BLOCKER 后）**：`wrapPrivateKey(privateKey, derivePassphraseKey(sharePassphrase, salt))`，盐为独立随机 salt；通过 `functions/api/share/keys.ts`（**已移除 `syncEntitled` 门控**）上报。这样免费伴侣无需购买 Plus 同步也能生成共享密钥对并接收共享（零知识：私钥密文服务端不可解）。
+- **关键修复**：原实现要求伴侣必须启用 E2EE 同步（Plus 专属）才能生成密钥对，导致「伴侣免费」承诺落空——新免费账号看不到接受按钮、无法接受。现免费伴侣首次接收前在 SharePanel 自设「共享口令」即可，与同步口令相互独立。
+- **迁移 0008 注释**中「私钥用同步口令派生的密钥包裹」一句措辞不精确——实际包裹密钥是 AES-GCM vault 密钥（已启用同步者，salt=vaultSalt）或共享口令派生密钥（免费伴侣，salt=独立随机值）。存储列（`wrapped_private_key` / `private_key_salt`）不变。
 
 ### 13.3 其它实现要点
 - **后端**：`functions/api/share/{invite,list,accept,sync,revoke}.ts` + `functions/api/users/public-key.ts` + 懒升级端点 `functions/api/share/keys.ts`（为 pre-Phase-4 已启用同步的老用户补传密钥对）。门控同 §5：创建者需 `syncEntitled`（Plus/创始/祖父），伴侣 `accept`/`sync`/`list` 仅查 active 成员。

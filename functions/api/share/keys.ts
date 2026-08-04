@@ -11,7 +11,6 @@
 
 import type { PagesFunctionContext, D1Database } from '../../utils/types';
 import { getUserId } from '../../utils/auth';
-import { getSyncEntitlement } from '../../utils/subscription-db';
 import { upsertUserKeys } from '../../utils/db';
 import { json, isB64ish } from '../../utils/http';
 
@@ -26,9 +25,9 @@ export const onRequestPost: Handler = async (context) => {
     const userId = await getUserId(context.request, context.env.DB);
     if (!userId) return json({ error: 'unauthorized' }, { status: 401 });
 
-    // 与 sync-setup 同门控：只有具备同步权益的用户才拥有加密 vault，才需要密钥对
-    const ent = await getSyncEntitlement(context.env.DB, userId);
-    if (!ent.syncEntitled) return json({ error: 'upgrade_required' }, { status: 402 });
+    // Phase 4（2026-08-04 修复）：任何登录用户都可上报共享密钥对——公钥公开、私钥由本人
+    // 口令（或同步 vault 密钥）包裹，服务端无法解开。门控已移除，使「伴侣免费」可落地：
+    // 免费伴侣无需启用付费的 E2EE 同步也能生成共享密钥对并接收共享。
 
     let body: { publicKey?: string; wrappedPrivateKey?: string; privateKeySalt?: string };
     try {

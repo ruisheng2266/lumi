@@ -332,6 +332,16 @@ common: {
       summaryNext: '预计下次经期：{date}',
       summaryLogs_other: '已同步 {count} 条日记，最近：{date}',
       readOnlyHint: '以上为伴侣分享的只读视图，不会写入你的本地记录。',
+      // 2026-08-04「伴侣免费」修复：免费伴侣接收共享前自设共享口令
+      sharePassphraseDesc: '接收伴侣共享需先设置一个「共享口令」（与同步口令无关）。它只用于加密保护你的共享密钥，Lumi 无法读取。',
+      sharePassphrasePlaceholder: '共享口令',
+      confirmPassphrasePlaceholder: '确认共享口令',
+      setupShareKey: '设置共享口令并准备接收',
+      shareKeyReady: '共享口令已就绪，可以接收伴侣共享了。',
+      wrongSharePassphrase: '共享口令错误，请重试',
+      passphraseRequired: '请输入共享口令',
+      passphraseMismatch: '两次输入的共享口令不一致',
+      setupShareKeyFailed: '设置共享口令失败，请重试',
     },
     overview: {
       title: '概况',

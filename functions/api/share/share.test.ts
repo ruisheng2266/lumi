@@ -26,10 +26,6 @@ const PARTNER = 'partner-1';
 const OWNER_SESS = 'sess-owner';
 const PARTNER_SESS = 'sess-partner';
 
-function b64(s: string): string {
-  return btoa(s);
-}
-
 function makeBucket(): R2Bucket & { _store: Map<string, Uint8Array> } {
   const store = new Map<string, Uint8Array>();
   return {
@@ -54,7 +50,7 @@ function makeBucket(): R2Bucket & { _store: Map<string, Uint8Array> } {
   };
 }
 
-function makeCtx(req: Request, db: D1Database, bucket: R2Bucket, cookie?: string) {
+function makeCtx(req: Request, db: D1Database, bucket: R2Bucket, _cookie?: string) {
   return {
     request: req,
     env: { DB: db, BUCKET: bucket },

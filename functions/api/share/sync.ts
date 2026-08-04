@@ -11,7 +11,7 @@
 
 import type { PagesFunctionContext, D1Database, R2Bucket, SyncRecordInput } from '../../utils/types';
 import { getUserId } from '../../utils/auth';
-import { getMember, getSharedMeta, upsertSharedMeta, listSharedMeta, deleteSharedMeta } from '../../utils/share-db';
+import { getMember, getSharedMeta, upsertSharedMeta, listSharedMeta } from '../../utils/share-db';
 import { json, b64ToBytes, bytesToB64 } from '../../utils/http';
 
 interface Env {

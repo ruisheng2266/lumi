@@ -2,7 +2,7 @@
 
 > 文档版本：v1.0
 > 日期：2026-07-31
-> 状态：v0.5.0 已发布（含导航与对比度收尾）；v1.0 Phase 1（账号 MVP / Google 登录）已上线验证（2026-07-31）；**Phase 2（E2EE 同步）与 Phase 3（Plus 权益 + 支付）已于 2026-08-01 实现 + PayPal 沙箱全链路真机验证通过**（v0.6.0）；**Phase 3 已于 2026-08-03 切到 PayPal Live 生产（真实扣款开启，生产验证待另一账号）**；**v0.7.1（2026-08-03）打赏（Donation）入口已上线**；**v0.7.2（2026-08-03）打赏匿名聚合统计看板上線（donations_aggregate + ADMIN_CODE 看板，零 PII）**；**v0.7.3（2026-08-03）Apple 登录前端 + 配置就绪（按钮已上线、端点早已完成，待 Apple 开发者凭证激活）**；Phase 4（伴侣共享 / AI）待做，待定项见末尾
+> 状态：v0.5.0 已发布（含导航与对比度收尾）；v1.0 Phase 1（账号 MVP / Google 登录）已上线验证（2026-07-31）；**Phase 2（E2EE 同步）与 Phase 3（Plus 权益 + 支付）已于 2026-08-01 实现 + PayPal 沙箱全链路真机验证通过**（v0.6.0）；**Phase 3 已于 2026-08-03 切到 PayPal Live 生产（真实扣款开启，生产验证待另一账号）**；**v0.7.1（2026-08-03）打赏（Donation）入口已上线**；**v0.7.2（2026-08-03）打赏匿名聚合统计看板上線（donations_aggregate + ADMIN_CODE 看板，零 PII）**；**v0.7.3（2026-08-03）Apple 登录前端 + 配置就绪（按钮已上线、端点早已完成，待 Apple 开发者凭证激活）**；**Phase 4 伴侣加密共享已实现并随 v0.8.0（2026-08-03）发布；「伴侣免费接收共享」BLOCKER 已于 2026-08-04 随 v0.8.1 修复**（免费伴侣无需 Plus 即可生成共享密钥对并接收共享）。AI 洞察增强仍待做，待定项见末尾
 > 关联文档：`docs/MVP-PRD.md`（PRD）、`docs/PRICING-STRATEGY.md`（定价策略）
 
 ---
@@ -18,7 +18,7 @@ PRD §13 沿用了内部里程碑标签（V1 / V1.4 / V1.5），与 GitHub 实�
 | V1.5（收尾） | **v0.3.1** | i18n `translation` 包装层修复（hotfix，消除原始 key 显示） |
 | v0.4 / v0.5 | **v0.4.0–v0.5.0** | 信任加固（竞品导入/特殊场景/不规律诚实预测）、a11y 实测 + 医生报告 PDF、多年趋势、围绝经期、BBT 备孕、健康科普（ja/ko/zh-TW 经用户决定移除） |
 
-> ⚠️ **v1.0 Phase 1 账号 MVP（Google OAuth + Cloudflare D1）已于 2026-07-31 上线验证**（登录 / 登出 / 注销 / 删除后重注册全链路通过）。**Phase 2（E2EE 同步）与 Phase 3（Plus 权益 + 支付）已于 2026-07-31 实现**：同步为端到端加密跨设备同步；Plus 后端含 subscriptions/activation_codes 表、entitlement 权益计算（祖父条款保留 Phase 2 老用户免费同步）、PayPal（沙箱优先）与激活码。Phase 4（伴侣共享 / AI）仍待做。
+> ⚠️ **v1.0 Phase 1 账号 MVP（Google OAuth + Cloudflare D1）已于 2026-07-31 上线验证**（登录 / 登出 / 注销 / 删除后重注册全链路通过）。**Phase 2（E2EE 同步）与 Phase 3（Plus 权益 + 支付）已于 2026-07-31 实现**：同步为端到端加密跨设备同步；Plus 后端含 subscriptions/activation_codes 表、entitlement 权益计算（祖父条款保留 Phase 2 老用户免费同步）、PayPal（沙箱优先）与激活码。Phase 4 伴侣加密共享已实现并随 v0.8.0（2026-08-03）发布、「伴侣免费接收」BLOCKER 已于 v0.8.1（2026-08-04）修复；AI 洞察增强仍待做。
 >
 > 路线图统一口径：**v0.x = 纯本地功能（Free 全免费）；v1.0 = 引入后端 / 付费层（Plus）**。
 
@@ -74,7 +74,7 @@ PRD §13 沿用了内部里程碑标签（V1 / V1.4 / V1.5），与 GitHub 实�
 | --- | --- | --- |
 | **① 账号系统落地** | ✅ 已上线：Google OAuth + Cloudflare D1，仅承载身份与偏好（SPA OAuth 流程 + PKCE + 注销 + 删除后重注册）| Plus 前置 |
 | **② 端到端加密跨设备同步** | ✅ 已实现（2026-07-31）：对称 vault 方案 + R2 密文 + D1 sync_meta 索引 + 恢复码，全链路真机验证通过 | **Plus** |
-| **③ 伴侣加密共享** | 授权伴侣只读/有限查看，加密共享链接 | **Plus** |
+| **③ 伴侣加密共享** | ✅ 已实现（2026-08-03，v0.8.0）：零知识 RSA-OAEP 共享 + 单向加密镜像（创建者写、伴侣只读）；**「伴侣免费接收」BLOCKER 已于 v0.8.1（2026-08-04）修复**（免费伴侣免 Plus 即可生成密钥对并接收） | **Plus** |
 | **④ AI 洞察增强** | 可选端侧模型或可选云增强，解释"为什么"更深入 | **Plus** |
 | **⑤ Plus 权益 + 支付** | ✅ 已实现 + **PayPal 沙箱真机验证通过**（2026-08-01）+ **已切 Live 生产（2026-08-03）**：subscriptions/activation_codes 表 + entitlement 权益门控（祖父条款）+ PayPal（live：Orders/Subscriptions/webhook 幂等）+ 激活码生成/兑换 + 前端 Plus 面板与同步门控 UI | **Plus** |
 
@@ -119,6 +119,17 @@ PRD §13 沿用了内部里程碑标签（V1 / V1.4 / V1.5），与 GitHub 实�
 > - `src/pages/Settings.tsx`：Apple 按钮整段注释（代码保留便于恢复），移除未使用 `Apple` 图标 import（避免 CI `noUnusedLocals`）。Google 登录正常可用、不受影响。
 > - 提交 tag `v0.7.4`，**`tsc -b` + `vite build` 通过**。
 
+> 📌 **v0.8.0 — 伴侣加密共享（Phase 4）上线（2026-08-03，已 push + 部署）**：
+> - **零知识伴侣共享**：每用户 RSA-OAEP 2048 密钥对，用对方公钥一步 `wrapKey` 投递共享 Vault Key；服务器仅存公钥与包裹密钥，永不可见明文。迁移 0008（shared_vaults/shared_members/shared_meta）+ R2 `shared/{vaultId}/{recordId}`；6 端点（invite/list/accept/sync/revoke/public-key）+ 懒升级端点 `share/keys.ts`。
+> - **单向加密镜像**：创建者把自己选定范围的数据加密推送，伴侣只读展示、绝不写入本地主库，避免两人健康数据互相污染。撤销 = **轮换共享密钥 + 全量重加密**（旧密钥无法解密新 blob，不依赖服务端守信）。
+> - **权益**：仅创建者发起需 Plus/创始；**伴侣接受与查看永久免费**。设计文档 `docs/PHASE4-SHARING.md`（含 §13 两处自主偏差纪要）；联调 Checklist `docs/PHASE4-E2E-CHECKLIST.md`。
+> - 提交 `1387467`，tag `v0.8.0`，**181 测试 + `tsc` + `vite build` 全绿**。
+
+> 📌 **v0.8.1 — 修复「伴侣免费」BLOCKER（2026-08-04，已 push + 部署）**：
+> - **问题**：原实现要求伴侣必须启用付费 E2EE 同步才能生成共享密钥对，导致新免费账号看不到接受按钮、无法接受共享，「伴侣免费」承诺落空（仅祖父老用户碰巧走通）。
+> - **修复**：`share/keys.ts` 移除 `syncEntitled` 门控（任何登录用户均可上报共享密钥对）；`sync-setup GET` 让免费用户也能取回密钥材料；新增 `setupShareKeypair`/`unlockShareKeypair`（免费伴侣用独立「共享口令」PBKDF2 包裹私钥，与同步口令互不干扰；已启用同步者仍走 vault 密钥包裹、口令重置不失效）；`SharePanel` 放开 `ready` 门控，免费伴侣显示「设置共享口令」卡与接受表单；范围变更后历史 blob 自动重推 + 墓碑清理（修复范围变更不重推偏差）。
+> - 提交 `772aa54`，tag `v0.8.1`，**181 测试 + `tsc` + `vite build` 全绿**。联调 Checklist `docs/PHASE4-E2E-CHECKLIST.md` 已标注 BLOCKER 已修复。
+
 ### 🟣 v1.x+ — 生态扩展（混合层）
 | 方向 | 说明 |
 | --- | --- |
@@ -148,6 +159,7 @@ PRD §13 沿用了内部里程碑标签（V1 / V1.4 / V1.5），与 GitHub 实�
 - [x] **创始终身 ¥98 日落承诺落地（2026-08-03，v0.7.6）**：终身范围按 `PRICING-STRATEGY.md` §4 日落承诺执行——设备端功能真终身，后端服务（同步 / AI / 共享）受停运预案保障。落地文案写入 `PlusPanel`（`founderDesc`/`founderSunset` 改为诚实表述）+ 关于页新增「停运预案（Sunset Commitment）」区块；`PRICING-STRATEGY.md` §4.3 原条款已发布到用户可见界面。
 - [x] **用户系统是自建 D1 还是第三方 BaaS**？已定：自建 Cloudflare D1（非 BaaS），Phase 1 已实现并上线 ✅
 - [x] **Phase 4 伴侣加密共享设计（2026-08-04）**：设计文档落地 `docs/PHASE4-SHARING.md`——零知识共享架构（每用户 RSA-OAEP 密钥对、用对方公钥包裹 Shared Vault Key）、迁移 0008（shared_vaults/shared_members/shared_meta）、6 个端点（invite/list/accept/sync/revoke/public-key）、撤销=轮换密钥+重加密、v1 per-record LWW（字段级合并留后续）、权益=仅创建者需 Plus 伴侣免费。分 M1–M4 实施。
-- [x] **Phase 4 伴侣加密共享实现（2026-08-03，v0.8.0）**：按设计落地并随 v0.8.0 发布。后端 6 端点 + 懒升级端点 `share/keys.ts`；前端 `shareStore.ts`（邀请/接受/推送/拉取/轮换密钥重加密撤销）+ `SharePanel.tsx`（Settings 入口）；`crypto.ts` 加 `wrapPrivateKey/unwrapPrivateKey`；i18n `share` 命名空间（zh-CN/en）。**两处自主偏差**（见文档 §13）：①共享为单向加密镜像（创建者写、伴侣只读，不污染本地主库）；②私钥由 vault 密钥包裹（口令重置后共享不失效）。测试：`share.test.ts`（含撤销重加密正确性）、`crypto.test.ts`、`shareStore.test.ts`。真机两账号联调待上线后验证。
+- [x] **Phase 4 伴侣加密共享实现（2026-08-03，v0.8.0）**：按设计落地并随 v0.8.0 发布。后端 6 端点 + 懒升级端点 `share/keys.ts`；前端 `shareStore.ts`（邀请/接受/推送/拉取/轮换密钥重加密撤销）+ `SharePanel.tsx`（Settings 入口）；`crypto.ts` 加 `wrapPrivateKey/unwrapPrivateKey`；i18n `share` 命名空间（zh-CN/en）。**两处自主偏差**（见文档 §13）：①共享为单向加密镜像（创建者写、伴侣只读，不污染本地主库）；②私钥由 vault 密钥包裹（口令重置后共享不失效）。测试：`share.test.ts`（含撤销重加密正确性）、`crypto.test.ts`、`shareStore.test.ts`。真机两账号联调待走 `docs/PHASE4-E2E-CHECKLIST.md` 验证。
+- [x] **Phase 4「伴侣免费」BLOCKER 修复（2026-08-04，v0.8.1）**：原实现要求伴侣启用付费 E2EE 同步才能生成密钥对 → 新免费账号看不到接受按钮、无法接受。已修复——`share/keys.ts` 移除 `syncEntitled` 门控、免费伴侣用独立「共享口令」生成并包裹密钥对、范围变更自动重推；现「伴侣免费接收共享」真实可用。详见 `docs/PHASE4-SHARING.md §13.2` 与 `docs/PHASE4-E2E-CHECKLIST.md`。
 - [ ] 是否接受「先发国际版（en 优先）再回国内」的节奏？
 - [ ] **Apple 登录激活（用户决定暂缓）**：代码已部署（v0.7.3）但暂不启用——用户当前为免费 Apple ID 未加入 Developer Program（$99/年，Sign in with Apple 必需）。待未来上架 iOS App 时一并注册，再按 `docs/APPLE-LOGIN.md` 第 2–3 步配 Services ID + Auth Key + 4 条 `wrangler secret put`。当前 Google 登录正常可用，不受影响。

@@ -53,7 +53,8 @@
 
 ## H. 非阻塞 / 业务决策（不写代码，待拍板）
 - [ ] Apple 登录激活（暂缓）：需加入 Apple Developer Program $99/年 + 配 4 条 secret，再取消注释按钮
-- [ ] Phase 4 伴侣共享 + AI 洞察：尚未实现，见 `V1.0-ACCOUNT-SYSTEM-DESIGN.md`
+- [x] Phase 4 伴侣加密共享：已实现并随 v0.8.0（2026-08-03）发布、「伴侣免费接收」BLOCKER 已于 v0.8.1（2026-08-04）修复（免费伴侣免 Plus 即可接收），详见 `docs/PHASE4-SHARING.md` / `docs/PHASE4-E2E-CHECKLIST.md`
+- [ ] AI 洞察增强（Phase 4 余下项）：仍待做，需后端或可选云，见 `V1.0-ACCOUNT-SYSTEM-DESIGN.md`
 - [ ] 国内 ¥ 真实扣款：Plus 仍走 PayPal USD，见 `PRICING-STRATEGY.md` §7
 
 ---

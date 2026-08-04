@@ -61,7 +61,8 @@
 
 ## H. 非阻塞 / 业务决策项（不写代码，待你拍板）
 - **Apple 登录激活（暂缓）**：代码已部署（v0.7.3）按钮已隐藏（v0.7.4）。启用需你加入 Apple Developer Program（$99/年）并按 `docs/APPLE-LOGIN.md` 配 Services ID + Auth Key + 4 条 `wrangler secret put`，再取消注释按钮。当前 Google 登录正常。
-- **Phase 4 伴侣共享 + AI 洞察**：账号系统最后一块，尚未实现。伴侣共享需把当前「per-record LWW 合并」升级为字段级合并；AI 更深入洞察需后端或可选云。见 `V1.0-ACCOUNT-SYSTEM-DESIGN.md`。
+- **Phase 4 伴侣加密共享**：已实现并随 v0.8.0（2026-08-03）发布，「伴侣免费接收」BLOCKER 已于 v0.8.1（2026-08-04）修复（免费伴侣免 Plus 即可接收）；共享为单向加密镜像（创建者写、伴侣只读），撤销=轮换共享密钥+全量重加密。详见 `docs/PHASE4-SHARING.md` §13 / `docs/PHASE4-E2E-CHECKLIST.md`。
+- **AI 洞察增强（Phase 4 余下项）**：仍待做，需后端或可选云，见 `V1.0-ACCOUNT-SYSTEM-DESIGN.md`。
 - **国内 ¥ 真实扣款**：Plus 仍经 PayPal 以 USD 结算（界面 ¥ 为参考价）。要以 ¥ 扣款需接入微信/支付宝「委托代扣/周期扣款」产品（需商户资质），属独立工作项，见 `PRICING-STRATEGY.md` §7。
 
 ---

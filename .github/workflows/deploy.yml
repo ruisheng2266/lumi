@@ -84,13 +84,38 @@ jobs:
           name: dist-${{ github.sha }}
           path: dist/
 
-      # 缺口①：部署前先应用 D1 迁移（建表），否则空库登录必 500
-      # ⚠️ 首次需先在本地执行 `npx wrangler d1 create lumi-db` 创建远程数据库，
-      #    并将返回的 database_id 写入 wrangler.toml 的 [[d1_databases]] 段。
-      #    若数据库尚未创建，此步会失败但不阻断部署（continue-on-error）。
+      # 部署前先应用 D1 迁移（建表 / 加列）。
+      # ⚠️ 本步 **禁止** continue-on-error：v0.8.0 曾因该选项导致迁移 0007/0008
+      #    静默失败但代码照常上线，引发「激活码兑换 500」「共享表缺失」。
+      #    迁移失败必须阻断部署（fail-fast），否则就是「代码新、库旧」的暗雷。
+      #    首次部署前需先本地 `npx wrangler d1 create lumi-db` 创建远程库。
       - name: Apply D1 migrations
-        continue-on-error: true
         run: npx wrangler d1 migrations apply lumi-db --remote --account-id ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # 迁移校验（defense-in-depth）：apply 成功后仍主动核验关键表/列是否真实存在，
+      # 缺一则中止部署。避免「apply 报成功但实际漏建」这类诡异不一致。
+      - name: Verify D1 schema
+        run: |
+          set -euo pipefail
+          REQUIRED_TABLES="shared_vaults shared_members shared_meta subscriptions users key_backup analytics_events donations_aggregate"
+          echo "→ 校验关键数据表是否存在"
+          TABLES=$(npx wrangler d1 execute lumi-db --remote --account-id "$CLOUDFLARE_ACCOUNT_ID" --command "SELECT name FROM sqlite_master WHERE type='table';" --json 2>&1) || { echo "❌ 查询 sqlite_master 失败"; exit 1; }
+          for t in $REQUIRED_TABLES; do
+            if ! echo "$TABLES" | grep -Eq "\"name\"[[:space:]]*:[[:space:]]*\"$t\""; then
+              echo "❌ 缺失数据表: $t"
+              exit 1
+            fi
+          done
+          echo "→ 校验 subscriptions.billing_cycle 列"
+          COLS=$(npx wrangler d1 execute lumi-db --remote --account-id "$CLOUDFLARE_ACCOUNT_ID" --command "PRAGMA table_info(subscriptions);" --json 2>&1) || { echo "❌ 查询 subscriptions schema 失败"; exit 1; }
+          if ! echo "$COLS" | grep -Eq "\"name\"[[:space:]]*:[[:space:]]*\"billing_cycle\""; then
+            echo "❌ subscriptions 缺少 billing_cycle 列（迁移 0007 未生效）"
+            exit 1
+          fi
+          echo "✅ D1 schema 校验通过"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

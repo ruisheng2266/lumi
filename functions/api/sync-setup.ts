@@ -14,6 +14,7 @@ import type { PagesFunctionContext, D1Database, R2Bucket } from '../utils/types'
 import { getUserId } from '../utils/auth';
 import { getKeyBackup, upsertKeyBackup, replaceRecoveryCodes } from '../utils/sync-db';
 import { getSyncEntitlement } from '../utils/subscription-db';
+import { getUserKeyMaterial, upsertUserKeys } from '../utils/db';
 
 interface Env {
   DB: D1Database;
@@ -41,10 +42,15 @@ export const onRequestGet: Handler = async (context) => {
     const backup = await getKeyBackup(context.env.DB, userId);
     if (!backup) return json({ initialized: false });
     // wrapped_vault_key / salt 是「passphrase 加密的密文」，对登录用户可见不破坏零知识
+    const keys = await getUserKeyMaterial(context.env.DB, userId);
     return json({
       initialized: true,
       wrappedVaultKey: backup.wrapped_vault_key,
       salt: backup.salt,
+      // 共享密钥材料：public_key 明文无碍；wrapped_private_key/salt 是口令加密密文，对登录用户可见不破坏零知识
+      publicKey: keys?.publicKey ?? null,
+      wrappedPrivateKey: keys?.wrappedPrivateKey ?? null,
+      privateKeySalt: keys?.privateKeySalt ?? null,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -69,6 +75,9 @@ export const onRequestPost: Handler = async (context) => {
       wrappedVaultKey?: string;
       salt?: string;
       recoveryCodes?: { codeHash: string; wrappedVaultKey: string }[];
+      publicKey?: string;
+      wrappedPrivateKey?: string;
+      privateKeySalt?: string;
     };
     try {
       body = await context.request.json();
@@ -102,6 +111,27 @@ export const onRequestPost: Handler = async (context) => {
       userId,
       recoveryCodes.map((c) => ({ code_hash: c.codeHash, wrapped_vault_key: c.wrappedVaultKey })),
     );
+
+    // Phase 4：若客户端一并上报了共享密钥对（首次启用同步时生成），则存储
+    const { publicKey, wrappedPrivateKey, privateKeySalt } = body;
+    if (
+      typeof publicKey === 'string' &&
+      typeof wrappedPrivateKey === 'string' &&
+      typeof privateKeySalt === 'string'
+    ) {
+      if (
+        !/^[A-Za-z0-9+/=]+$/.test(publicKey) ||
+        !/^[A-Za-z0-9+/=|]+$/.test(wrappedPrivateKey) ||
+        !/^[A-Za-z0-9+/=]+$/.test(privateKeySalt)
+      ) {
+        return json({ error: 'invalid_encoding' }, { status: 400 });
+      }
+      await upsertUserKeys(context.env.DB, userId, {
+        publicKey,
+        wrappedPrivateKey,
+        privateKeySalt,
+      });
+    }
 
     return json({ ok: true });
   } catch (err) {

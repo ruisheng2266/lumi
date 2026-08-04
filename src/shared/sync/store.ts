@@ -24,6 +24,9 @@ import {
   encryptRecord,
   generateRecoveryCodes,
   hashRecoveryCode,
+  generateUserKeyPair,
+  wrapPrivateKey,
+  unwrapPrivateKey,
 } from './crypto';
 import {
   collectLocalRecords,
@@ -54,6 +57,9 @@ interface SyncState {
 // 仅存于内存的敏感状态（不进 Zustand / 不持久化）
 let vaultKey: CryptoKey | null = null;
 let vaultSalt: Uint8Array | null = null;
+/** Phase 4：用户私钥（伴侣共享的密钥投递用），同样只存内存，锁定即清除 */
+let userPrivateKey: CryptoKey | null = null;
+let userPublicKeyB64: string | null = null;
 const applyingRemote = { value: false };
 let hooksInstalled = false;
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -115,6 +121,47 @@ async function pullAll(): Promise<void> {
   }
 }
 
+/**
+ * Phase 4：解开已有共享密钥对；若服务端还没有（Phase 4 之前启用同步的老用户），
+ * 就地生成一对、用 vault 密钥包裹后补传，实现无感升级。
+ */
+async function restoreOrCreateUserKeys(setup: {
+  publicKey?: string | null;
+  wrappedPrivateKey?: string | null;
+}): Promise<void> {
+  if (!vaultKey || !vaultSalt) return;
+  if (setup.wrappedPrivateKey) {
+    userPrivateKey = await unwrapPrivateKey(setup.wrappedPrivateKey, vaultKey);
+    userPublicKeyB64 = setup.publicKey ?? null;
+    return;
+  }
+  const kp = await generateUserKeyPair();
+  const wrappedPriv = await wrapPrivateKey(kp.privateKey, vaultKey);
+  const res = await fetch('/api/share/keys', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      publicKey: kp.publicKeySpkiB64,
+      wrappedPrivateKey: wrappedPriv,
+      privateKeySalt: bytesToB64(vaultSalt),
+    }),
+  });
+  if (!res.ok) throw new Error(`share_keys_upload_failed (${res.status})`);
+  userPrivateKey = kp.privateKey;
+  userPublicKeyB64 = kp.publicKeySpkiB64;
+}
+
+/** 供伴侣共享模块读取当前会话的私钥（未解锁时为 null） */
+export function getUserPrivateKey(): CryptoKey | null {
+  return userPrivateKey;
+}
+
+/** 当前会话的公钥（base64 SPKI），主要用于自检 */
+export function getUserPublicKeyB64(): string | null {
+  return userPublicKeyB64;
+}
+
 function schedulePush(): void {
   if (applyingRemote.value) return;
   if (!vaultKey) return;
@@ -162,6 +209,11 @@ export const useSync = create<SyncState>((set) => ({
       const passKey = await derivePassphraseKey(passphrase, vaultSalt);
       const wrapped = await wrapVaultKey(vaultKey, passKey);
 
+      // Phase 4：同时生成共享密钥对。私钥用「vault 密钥」包裹而非口令派生密钥——
+      // 这样用恢复码重置口令后私钥依然可解开，已建立的共享关系不会断。
+      const kp = await generateUserKeyPair();
+      const wrappedPriv = await wrapPrivateKey(kp.privateKey, vaultKey);
+
       const codes = generateRecoveryCodes();
       const recoveryCodes = [];
       for (const code of codes) {
@@ -179,6 +231,9 @@ export const useSync = create<SyncState>((set) => ({
           wrappedVaultKey: wrapped,
           salt: bytesToB64(vaultSalt),
           recoveryCodes,
+          publicKey: kp.publicKeySpkiB64,
+          wrappedPrivateKey: wrappedPriv,
+          privateKeySalt: bytesToB64(vaultSalt),
         }),
       });
       if (!res.ok) {
@@ -190,6 +245,9 @@ export const useSync = create<SyncState>((set) => ({
         throw new Error(detail);
       }
 
+      userPrivateKey = kp.privateKey;
+      userPublicKeyB64 = kp.publicKeySpkiB64;
+
       // push 成功后才设为 ready（push 失败保持 error 状态）
       await pushAll();
       installHooks();
@@ -197,6 +255,8 @@ export const useSync = create<SyncState>((set) => ({
     } catch (e) {
       vaultKey = null;
       vaultSalt = null;
+      userPrivateKey = null;
+      userPublicKeyB64 = null;
       set({ loading: false, error: (e as Error).message || 'enable_failed' });
     }
   },
@@ -212,6 +272,13 @@ export const useSync = create<SyncState>((set) => ({
       vaultKey = await unwrapVaultKey(data.wrappedVaultKey, passKey);
 
       set({ status: 'ready', loading: false, lastSyncAt: Date.now() });
+
+      // Phase 4：解开（或惰性补齐）共享密钥对。失败不影响同步本身。
+      try {
+        await restoreOrCreateUserKeys(data);
+      } catch (keyErr) {
+        console.warn('[sync] 共享密钥对准备失败：', keyErr);
+      }
       // 同步步骤单独处理错误，不与口令验证混淆
       try {
         await pullAll();
@@ -224,6 +291,8 @@ export const useSync = create<SyncState>((set) => ({
     } catch (e) {
       vaultKey = null;
       vaultSalt = null;
+      userPrivateKey = null;
+      userPublicKeyB64 = null;
       const msg = (e as Error).message || 'unknown';
       // 区分真正的口令错误和其他异常（格式/网络/服务端）
       if (msg === '包裹格式错误') set({ loading: false, error: 'invalid_vault_format' });
@@ -314,11 +383,22 @@ export const useSync = create<SyncState>((set) => ({
       });
       if (!res.ok) throw new Error('reset_failed');
 
+      // Phase 4：私钥由 vault 密钥包裹，重置口令后依然可恢复（共享关系不断）
+      try {
+        const setupRes = await fetch('/api/sync-setup', { credentials: 'include' });
+        const setup = await setupRes.json();
+        await restoreOrCreateUserKeys(setup);
+      } catch (keyErr) {
+        console.warn('[sync] 重置口令后共享密钥对恢复失败：', keyErr);
+      }
+
       set({ status: 'ready', loading: false, recoveryCodes: codes, lastSyncAt: Date.now() });
       await pushAll();
     } catch (e) {
       vaultKey = null;
       vaultSalt = null;
+      userPrivateKey = null;
+      userPublicKeyB64 = null;
       set({ loading: false, error: (e as Error).message || 'reset_failed' });
     }
   },
@@ -328,6 +408,8 @@ export const useSync = create<SyncState>((set) => ({
   clearSession: () => {
     vaultKey = null;
     vaultSalt = null;
+    userPrivateKey = null;
+    userPublicKeyB64 = null;
     set({ status: 'locked', recoveryCodes: null, error: null });
   },
 }));

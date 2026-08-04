@@ -18,6 +18,9 @@ export function createFakeD1(): FakeD1 {
     key_backup: [],
     recovery_codes: [],
     donations_aggregate: [],
+    shared_vaults: [],
+    shared_members: [],
+    shared_meta: [],
   };
 
   const execute = (sql: string, vals: unknown[]): Record<string, unknown>[] => {
@@ -32,6 +35,14 @@ export function createFakeD1(): FakeD1 {
       return tables.users.filter((u) => u.google_id === vals[0]);
     if (/SELECT \* FROM users WHERE apple_id = \?/.test(sql))
       return tables.users.filter((u) => u.apple_id === vals[0]);
+    if (/SELECT \* FROM users WHERE email = \?/.test(sql))
+      return tables.users.filter((u) => u.email === vals[0]);
+    if (/SELECT public_key, wrapped_private_key, private_key_salt FROM users WHERE id = \?/.test(sql)) {
+      const u = tables.users.find((u) => u.id === vals[0]);
+      return u
+        ? [{ public_key: u.public_key ?? null, wrapped_private_key: u.wrapped_private_key ?? null, private_key_salt: u.private_key_salt ?? null }]
+        : [];
+    }
     if (/SELECT user_id FROM sessions WHERE id = \? AND expires_at > \?/.test(sql)) {
       const [sid, now] = vals as [string, number];
       return tables.sessions.filter((s) => s.id === sid && (s.expires_at as number) > now);
@@ -62,9 +73,23 @@ export function createFakeD1(): FakeD1 {
     }
     if (/SELECT record_id, updated_at, blob_ref, hmac FROM sync_meta WHERE user_id = \?/.test(sql))
       return tables.sync_meta.filter((r) => r.user_id === vals[0]);
+    // Phase 3：subscription 查询（权益计算用）
+    if (/^SELECT[\s\S]*FROM subscriptions WHERE user_id = \?/.test(sql.trim()))
+      return tables.subscriptions.filter((r) => r.user_id === vals[0]);
 
     // ---- writes ----
     if (/UPDATE users SET/.test(sql)) {
+      // 密钥材料写入（Phase 4）：UPDATE users SET public_key=?, wrapped_private_key=?, private_key_salt=? WHERE id=?
+      if (/SET public_key = \?, wrapped_private_key = \?, private_key_salt = \? WHERE id = \?/.test(sql)) {
+        const [pk, wpk, salt, id] = vals as [string, string, string, string];
+        const u = tables.users.find((u) => u.id === id);
+        if (u) {
+          u.public_key = pk;
+          u.wrapped_private_key = wpk;
+          u.private_key_salt = salt;
+        }
+        return [];
+      }
       const [email, name, picture, ts, id] = vals as [string, string | null, string | null, number, string];
       const u = tables.users.find((u) => u.id === id);
       if (u) {
@@ -138,6 +163,72 @@ export function createFakeD1(): FakeD1 {
       });
       return [];
     }
+    // ---- Phase 4 共享 vault ----
+    if (/INSERT INTO shared_vaults/.test(sql)) {
+      const [vid, owner, epoch, created] = vals as [string, string, number, number];
+      tables.shared_vaults.push({ vault_id: vid, owner_user_id: owner, key_epoch: epoch, created_at: created });
+      return [];
+    }
+    if (/SELECT \* FROM shared_vaults WHERE vault_id = \?/.test(sql))
+      return tables.shared_vaults.filter((v) => v.vault_id === vals[0]);
+    if (/UPDATE shared_vaults SET key_epoch = \? WHERE vault_id = \?/.test(sql)) {
+      const [epoch, vid] = vals as [number, string];
+      const v = tables.shared_vaults.find((x) => x.vault_id === vid);
+      if (v) v.key_epoch = epoch;
+      return [];
+    }
+    if (/INSERT INTO shared_members/.test(sql)) {
+      const [vid, uid, role, wvk, joined, status] = vals as [string, string, string, string, number, string];
+      tables.shared_members.push({ vault_id: vid, user_id: uid, role, wrapped_vault_key: wvk, joined_at: joined, status });
+      return [];
+    }
+    if (/SELECT \* FROM shared_members WHERE vault_id = \? AND user_id = \?/.test(sql)) {
+      const [vid, uid] = vals as [string, string];
+      return tables.shared_members.filter((m) => m.vault_id === vid && m.user_id === uid);
+    }
+    if (/SELECT \* FROM shared_members WHERE user_id = \?/.test(sql))
+      return tables.shared_members.filter((m) => m.user_id === vals[0]);
+    if (/SELECT \* FROM shared_members WHERE vault_id = \?/.test(sql))
+      return tables.shared_members.filter((m) => m.vault_id === vals[0]);
+    if (/UPDATE shared_members SET status = \? WHERE vault_id = \? AND user_id = \?/.test(sql)) {
+      const [status, vid, uid] = vals as [string, string, string];
+      const m = tables.shared_members.find((x) => x.vault_id === vid && x.user_id === uid);
+      if (m) m.status = status;
+      return [];
+    }
+    if (/UPDATE shared_members SET wrapped_vault_key = \? WHERE vault_id = \? AND user_id = \?/.test(sql)) {
+      const [wvk, vid, uid] = vals as [string, string, string];
+      const m = tables.shared_members.find((x) => x.vault_id === vid && x.user_id === uid);
+      if (m) m.wrapped_vault_key = wvk;
+      return [];
+    }
+    if (/DELETE FROM shared_members WHERE vault_id = \? AND user_id = \?/.test(sql)) {
+      tables.shared_members = tables.shared_members.filter(
+        (m) => !(m.vault_id === vals[0] && m.user_id === vals[1]),
+      );
+      return [];
+    }
+    if (/SELECT record_id, updated_at, blob_ref, hmac FROM shared_meta WHERE vault_id = \? AND record_id = \?/.test(sql)) {
+      const [vid, rid] = vals as [string, string];
+      return tables.shared_meta.filter((m) => m.vault_id === vid && m.record_id === rid);
+    }
+    if (/SELECT record_id, updated_at, blob_ref, hmac FROM shared_meta WHERE vault_id = \? AND updated_at > \?/.test(sql)) {
+      const [vid, since] = vals as [string, number];
+      return tables.shared_meta.filter((m) => m.vault_id === vid && (m.updated_at as number) > since);
+    }
+    if (/SELECT record_id, updated_at, blob_ref, hmac FROM shared_meta WHERE vault_id = \?/.test(sql))
+      return tables.shared_meta.filter((m) => m.vault_id === vals[0]);
+    if (/INSERT INTO shared_meta/.test(sql)) {
+      const [vid, rid, ua, ref, hmac] = vals as [string, string, number, string, string];
+      tables.shared_meta.push({ vault_id: vid, record_id: rid, updated_at: ua, blob_ref: ref, hmac });
+      return [];
+    }
+    if (/DELETE FROM shared_meta WHERE vault_id = \? AND record_id = \?/.test(sql)) {
+      tables.shared_meta = tables.shared_meta.filter(
+        (m) => !(m.vault_id === vals[0] && m.record_id === vals[1]),
+      );
+      return [];
+    }
     if (/DELETE FROM sessions WHERE user_id = \?/.test(sql)) return delByUser('sessions'), [];
     if (/DELETE FROM recovery_codes WHERE user_id = \?/.test(sql)) return delByUser('recovery_codes'), [];
     if (/DELETE FROM key_backup WHERE user_id = \?/.test(sql)) return delByUser('key_backup'), [];
@@ -166,9 +257,6 @@ export function createFakeD1(): FakeD1 {
       });
       return [];
     }
-    // Phase 3：subscription 查询（权益计算用）
-    if (/SELECT plan, provider, provider_sub_id, billing_cycle, expires_at, created_at FROM subscriptions WHERE user_id = \?/.test(sql))
-      return tables.subscriptions.filter((r) => r.user_id === vals[0]);
     // Phase 3：activation code 查询（按 hash）
     if (/SELECT code_hash, plan, expires_at, used_by, created_at FROM activation_codes WHERE code_hash = \?/.test(sql)) {
       const [hash] = vals as [string];

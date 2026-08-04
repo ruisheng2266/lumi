@@ -194,3 +194,113 @@ export async function hashRecoveryCode(code: string): Promise<string> {
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
+
+// ---------------------------------------------------------------------------
+// 用户级非对称密钥对（Phase 4 伴侣加密共享，RSA-OAEP 2048）
+//
+// 设计（见 docs/PHASE4-SHARING.md §3）：
+//  - 每用户一对 RSA-OAEP 密钥，用于「密钥投递」：把共享 vault 密钥用对方公钥包裹，
+//    对方用自身私钥解开。服务端只存公钥（明文、非敏感）与被公钥包裹的共享密钥。
+//  - 复用 wrapVaultKey/unwrapVaultKey 的对称包裹逻辑存储「私钥」：私钥用同步口令派生的
+//    密钥包裹后存 D1（与 vault 密钥同等保护），解锁同步时一并解开。
+//  - 共享 vault 与私有 vault 只是两把不同的 AES-GCM vault 密钥，encryptRecord/decryptRecord
+//    完全复用。
+// ---------------------------------------------------------------------------
+
+export interface UserKeyPair {
+  /** 公钥 SPKI 编码 base64（明文存 D1，非敏感） */
+  publicKeySpkiB64: string;
+  /** 私钥（extractable，便于用口令派生密钥包裹后上传） */
+  privateKey: CryptoKey;
+}
+
+/** 生成一对 RSA-OAEP 2048 用户密钥（用于伴侣间共享密钥投递） */
+export async function generateUserKeyPair(): Promise<UserKeyPair> {
+  const kp = await getCrypto().subtle.generateKey(
+    { name: 'RSA-OAEP', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+    true,
+    ['wrapKey', 'unwrapKey'],
+  );
+  const spki = await getCrypto().subtle.exportKey('spki', kp.publicKey);
+  return {
+    publicKeySpkiB64: bytesToB64(new Uint8Array(spki)),
+    privateKey: kp.privateKey,
+  };
+}
+
+/**
+ * 用「口令派生密钥」包裹用户私钥 → base64(iv)|base64(ct)。
+ * 私钥是 RSA 密钥，导出格式必须是 pkcs8（不能像对称密钥那样用 'raw'）。
+ */
+export async function wrapPrivateKey(
+  privateKey: CryptoKey,
+  wrappingKey: CryptoKey,
+): Promise<string> {
+  const pkcs8 = await getCrypto().subtle.exportKey('pkcs8', privateKey);
+  const iv = new Uint8Array(IV_BYTES);
+  getCrypto().getRandomValues(iv);
+  const ct = await getCrypto().subtle.encrypt({ name: 'AES-GCM', iv }, wrappingKey, pkcs8);
+  return bytesToB64(iv) + '|' + bytesToB64(new Uint8Array(ct));
+}
+
+/** 解开被口令派生密钥包裹的用户私钥 */
+export async function unwrapPrivateKey(
+  wrapped: string,
+  wrappingKey: CryptoKey,
+): Promise<CryptoKey> {
+  const [ivB64, ctB64] = wrapped.split('|');
+  if (!ivB64 || !ctB64) throw new Error('包裹格式错误');
+  const iv = b64ToBytes(ivB64);
+  const ct = b64ToBytes(ctB64);
+  const pkcs8 = await getCrypto().subtle.decrypt(
+    { name: 'AES-GCM', iv: buf(iv) },
+    wrappingKey,
+    buf(ct),
+  );
+  return await getCrypto().subtle.importKey(
+    'pkcs8',
+    pkcs8,
+    { name: 'RSA-OAEP', hash: 'SHA-256' },
+    true,
+    ['unwrapKey'],
+  );
+}
+
+/** 从 base64 SPKI 导入对方公钥（用于包裹共享 vault 密钥） */
+export async function importPublicKeySpki(spkiB64: string): Promise<CryptoKey> {
+  const bytes = b64ToBytes(spkiB64);
+  return await getCrypto().subtle.importKey(
+    'spki',
+    buf(bytes),
+    { name: 'RSA-OAEP', hash: 'SHA-256' },
+    true,
+    ['wrapKey'],
+  );
+}
+
+/** 用对方公钥包裹共享 vault 密钥 → base64（RSA-OAEP wrapKey，一步完成） */
+export async function wrapVaultKeyForUser(
+  vaultKey: CryptoKey,
+  partnerPublicKey: CryptoKey,
+): Promise<string> {
+  const wrapped = await getCrypto().subtle.wrapKey('raw', vaultKey, partnerPublicKey, {
+    name: 'RSA-OAEP',
+  });
+  return bytesToB64(new Uint8Array(wrapped));
+}
+
+/** 用自身私钥解开被对方公钥包裹的共享 vault 密钥 */
+export async function unwrapVaultKeyWithPrivate(
+  wrappedB64: string,
+  userPrivateKey: CryptoKey,
+): Promise<CryptoKey> {
+  return await getCrypto().subtle.unwrapKey(
+    'raw',
+    buf(b64ToBytes(wrappedB64)),
+    userPrivateKey,
+    { name: 'RSA-OAEP' },
+    { name: 'AES-GCM', length: 256 },
+    true,
+    ['encrypt', 'decrypt'],
+  );
+}

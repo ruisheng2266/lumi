@@ -1,8 +1,9 @@
 # Phase 4 · 伴侣加密共享 — 设计文档与实施计划
 
-> 状态（2026-08-04）：**设计完成、待实现**。本文档是 Phase 4「共享 / AI」中「伴侣加密共享」部分的权威设计，配套 `V1.0-ACCOUNT-SYSTEM-DESIGN.md` 的 Phase 4 行。
+> 状态（2026-08-03 / v0.8.0）：**已实现并随 v0.8.0 发布**。本文档是 Phase 4「共享 / AI」中「伴侣加密共享」部分的权威设计，配套 `V1.0-ACCOUNT-SYSTEM-DESIGN.md` 的 Phase 4 行。
 > 已拍板决策：① 先出设计文档再实现；② **仅创建者需 Plus，伴侣作免费被共享者**。
 > AI 洞察增强不在本文档范围（见 §11 开放问题）。
+> ⚠️ **与原始设计的两处关键偏差（实现时的自主决策，见 §13）**：(1) 共享为**单向加密镜像**（创建者写、伴侣只读），非双向读写；(2) 用户私钥由 **vault 密钥** 包裹（而非 passphrase 派生密钥），使重置口令后已有共享不失效。
 
 ---
 
@@ -169,3 +170,33 @@ CREATE TABLE shared_meta (
 - **unit**：wrap/unwrap 往返一致；per-record LWW（高 updated_at 胜）；revoke 后旧 key 解密新 blob 失败。
 - **integration**：invite → accept → 双方 sync 互通 → revoke → partner 侧解密失败。
 - **e2e 手动**：两账号互邀，验证双向读写、撤销后无法解密、创建者需 Plus / 伴侣免费。
+
+---
+
+## 13. 实现纪要（v0.8.0，2026-08-03）
+
+Phase 4 已按本设计落地并随 **v0.8.0** 发布。以下记录实现时相对 §1–§12 的自主决策与偏差，供审查：
+
+### 13.1 关键偏差：共享为单向加密镜像（非双向读写）
+- **原设计（§1）**：支持「双向读写」，两人改同一份共享 vault。
+- **实际实现**：共享是**创建者单向加密镜像**——创建者把自己选定范围的数据加密推送到共享 vault；伴侣 `pullShared` 后只在「伴侣视图」里**只读**展示，**绝不写入伴侣本地主库**。
+- **理由**：避免两个人的健康数据互相污染（伴侣本地主库只该有自己的记录）；v1 把冲突面降到零，也符合「共享是给伴侣看、不是合著一本账」的真实使用场景。
+- **影响**：§7 的「字段级合并 / 同记录并发」问题在单向模型下自然消失；后续若要做双向，再评估 §7 的字段级 LWW。
+
+### 13.2 关键偏差：私钥由 vault 密钥包裹（非 passphrase 派生密钥）
+- **原设计（§3.1）**：私钥用 passphrase 派生密钥包裹（与 `key_backup` 并列）。
+- **实际实现**：`wrapPrivateKey(privateKey, vaultKey)`，包裹盐复用 `vaultSalt`；`store.ts` 的 `restoreOrCreateUserKeys` 在解锁同步后用 vault 密钥解开。
+- **理由**：重置同步口令（用恢复码）会换 passphrase 派生密钥，但 **vault 密钥本身不变**（恢复码直接解开 vault 密钥）。若私钥绑在 passphrase 派生密钥上，重置口令会让已建立的共享全部失效；绑在 vault 密钥上则共享在口令重置后依然有效，体验更连贯。
+- **迁移 0008 注释**中「私钥用同步口令派生的密钥包裹」一句措辞不精确——实际包裹密钥是 AES-GCM vault 密钥（其 salt 即 vaultSalt）。存储列（`wrapped_private_key` / `private_key_salt`）不变。
+
+### 13.3 其它实现要点
+- **后端**：`functions/api/share/{invite,list,accept,sync,revoke}.ts` + `functions/api/users/public-key.ts` + 懒升级端点 `functions/api/share/keys.ts`（为 pre-Phase-4 已启用同步的老用户补传密钥对）。门控同 §5：创建者需 `syncEntitled`（Plus/创始/祖父），伴侣 `accept`/`sync`/`list` 仅查 active 成员。
+- **前端**：`src/shared/share/shareStore.ts`（Zustand，含 `inScope` 范围过滤、邀请/接受/推送/拉取/**轮换密钥重加密**撤销）+ `src/shared/share/SharePanel.tsx`（Settings 入口，需先解锁加密同步；范围 `Select` 三种）+ `src/shared/sync/crypto.ts` 新增 `wrapPrivateKey/unwrapPrivateKey` + `src/shared/sync/store.ts` 的 keypair 生命周期。
+- **i18n**：`zh-CN.ts` / `en.ts` 新增 `share` 命名空间。
+- **测试**：`functions/api/share/share.test.ts`（后端含 revoke 重加密正确性）、`src/shared/sync/crypto.test.ts`（密钥对 wrap/unwrap 往返）、`src/shared/share/shareStore.test.ts`（v1 范围语义 `inScope` + 清理）。
+
+### 13.4 上线前待办（与 v0.8.0 无关，留待真机联调）
+- 两账号真机端到端联调（创建者 Plus 发起 / 伴侣免费接受 / 撤销后旧密钥失效）。
+- 撤销重加密的「分批 + `rekeying` 标志」防中断不一致（§6 已设计，v1 数据量小直接同步遍历）。
+- 共享范围变更后，已 push 的历史 blob 不会自动重推（仅影响后续 push）；如需立即生效，UI 可提示「变更范围后点一次立即推送」。
+

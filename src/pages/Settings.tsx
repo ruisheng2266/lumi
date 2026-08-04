@@ -25,6 +25,7 @@ import { today } from '../shared/lib/date';
 import { useTheme } from '../shared/theme/useTheme';
 import { APP_VERSION } from '../shared/version';
 import { SyncPanel } from '../shared/sync/SyncPanel';
+import { SharePanel } from '../shared/share/SharePanel';
 import { PlusPanel } from '../shared/plus/PlusPanel';
 import { DonatePanel } from '../shared/donate/DonatePanel';
 import { detectAndParse, type ImportPreview } from '../shared/lib/import';
@@ -302,6 +303,9 @@ export function Settings() {
 
       {/* 云端同步（Phase 2；Phase 3 起同步改为 Plus 专属，祖父老用户保留免费同步） */}
       <SyncPanel />
+
+      {/* 伴侣加密共享（Phase 4）：创建者需 Plus/创始，伴侣查看永久免费 */}
+      <SharePanel />
 
       {/* Stats overview */}
       <section>

@@ -147,5 +147,6 @@ PRD §13 沿用了内部里程碑标签（V1 / V1.4 / V1.5），与 GitHub 实�
 - [x] **Plus 价格分档（2026-08-03，v0.7.7）**：已实现「月付（$2.99/月，含 7 天试用）+ 年付（$19.99/年，主推「省一半」）」双档；后端两个 PayPal Plan（`PAYPAL_PLUS_PLAN_ID` / `PAYPAL_PLUS_PLAN_ID_MONTHLY`），webhook 由 `plan_id` 反推 `billing_cycle` 落库；前端按显示语言地区分流展示 ¥/$ 单一币种。详见 `PRICING-STRATEGY.md` §7。
 - [x] **创始终身 ¥98 日落承诺落地（2026-08-03，v0.7.6）**：终身范围按 `PRICING-STRATEGY.md` §4 日落承诺执行——设备端功能真终身，后端服务（同步 / AI / 共享）受停运预案保障。落地文案写入 `PlusPanel`（`founderDesc`/`founderSunset` 改为诚实表述）+ 关于页新增「停运预案（Sunset Commitment）」区块；`PRICING-STRATEGY.md` §4.3 原条款已发布到用户可见界面。
 - [x] **用户系统是自建 D1 还是第三方 BaaS**？已定：自建 Cloudflare D1（非 BaaS），Phase 1 已实现并上线 ✅
+- [x] **Phase 4 伴侣加密共享设计（2026-08-04）**：设计文档落地 `docs/PHASE4-SHARING.md`——零知识共享架构（每用户 RSA-OAEP 密钥对、用对方公钥包裹 Shared Vault Key）、迁移 0008（shared_vaults/shared_members/shared_meta）、6 个端点（invite/list/accept/sync/revoke/public-key）、撤销=轮换密钥+重加密、v1 per-record LWW（字段级合并留后续）、权益=仅创建者需 Plus 伴侣免费。分 M1–M4 实施。待实现。
 - [ ] 是否接受「先发国际版（en 优先）再回国内」的节奏？
 - [ ] **Apple 登录激活（用户决定暂缓）**：代码已部署（v0.7.3）但暂不启用——用户当前为免费 Apple ID 未加入 Developer Program（$99/年，Sign in with Apple 必需）。待未来上架 iOS App 时一并注册，再按 `docs/APPLE-LOGIN.md` 第 2–3 步配 Services ID + Auth Key + 4 条 `wrangler secret put`。当前 Google 登录正常可用，不受影响。
